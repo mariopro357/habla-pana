@@ -1,239 +1,194 @@
 /* ============================================================
-   HABLA, PANA! 🇻🇪 — MOTOR CRIOLLO P2P (v3.0 - Serverless)
-   Reconstrucción Total - 100% Vercel Ready
+   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v4.0)
+   PeerJS Edition - Serverless & High Performance
    ============================================================ */
 
-const REFRANES = [
-    { p: "Más sabe el diablo por viejo que por...", r: "diablo" },
-    { p: "Árbol que nace torcido, jamás su tronco...", r: "endereza" },
-    { p: "Camarón que se duerme, se lo lleva la...", r: "corriente" },
-    { p: "Hijo de gato, caza...", r: "ratón" },
-    { p: "Perro que ladra, no...", r: "muerde" },
-    { p: "Guerra avisada no mata...", r: "soldado" },
-    { p: "Chivo que se devuelve se...", r: "esnuca" }
-];
-
-const App = {
-    // --- Estado ---
-    user: { nick: '', state: '', pts: 100, id: 'pana_' + Math.random().toString(36).substr(2, 9) },
+const HanaPana = {
+    // --- ESTADO GLOBAL ---
+    peer: null,
+    currentCall: null,
     localStream: null,
-    pc: null,
-    client: null,
-    partnerId: null,
-    isLooking: false,
-    currentCaptcha: null,
+    points: 100,
+    nick: '',
+    state: '',
+    isMuted: false,
+    isVideoOff: false,
+    
+    // --- INICIALIZACIÓN (PASO 2) ---
+    async init() {
+        const nickInput = document.getElementById('nick-input');
+        const stateSelect = document.getElementById('state-select');
+        const captchaInput = document.getElementById('captcha-input');
 
-    // --- Init & UI ---
-    showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(`screen-${id}`).classList.add('active');
-    },
+        // Validaciones Criollas
+        if (!nickInput.value.trim()) return alert("¡Epa! No seas pichirre, pon un nickname.");
+        if (!stateSelect.value) return alert("¿De dónde eres, chamo? Selecciona un estado.");
+        if (captchaInput.value.toLowerCase().trim() !== "diablo") {
+            return alert("❌ Nawara... te falta calle. Ese no es el refrán.");
+        }
 
-    async startSetup() {
-        const nick = document.getElementById('nick-input').value.trim();
-        const state = document.getElementById('state-input').value;
+        // Guardar Datos
+        this.nick = nickInput.value.trim();
+        this.state = stateSelect.value;
+        this.loadPoints();
 
-        if (!nick || !state) return alert("¡Epa! Pon tus datos primero, pana.");
-
-        this.user.nick = nick;
-        this.user.state = state;
-
-        // Pedir Cámara
+        // Solicitar Permisos
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            this.showLocalPreview();
-        } catch(e) {
-            return alert("❌ ¡ACTIVA LA CÁMARA! Si no, ¿cómo te ven los panas?");
-        }
+            this.localStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: 1280, height: 720 }, 
+                audio: true 
+            });
+            document.getElementById('local-video').srcObject = this.localStream;
+            
+            // Cambiar de Pantalla
+            document.getElementById('screen-auth').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('screen-auth').classList.add('hidden');
+                document.getElementById('screen-chat').classList.remove('hidden');
+                this.setupPeer();
+            }, 500);
 
-        // Generar Captcha
-        this.currentCaptcha = REFRANES[Math.floor(Math.random() * REFRANES.length)];
-        document.getElementById('captcha-phrase').innerText = `"${this.currentCaptcha.p}"`;
-        this.showScreen('captcha');
-    },
-
-    showLocalPreview() {
-        const container = document.getElementById('local-container');
-        container.innerHTML = '';
-        const video = document.createElement('video');
-        video.srcObject = this.localStream;
-        video.autoplay = video.playsInline = video.muted = true;
-        video.style.transform = "scaleX(-1)";
-        container.appendChild(video);
-        document.getElementById('mirror-nick').innerText = this.user.nick.toUpperCase();
-        document.getElementById('mirror-loc').innerText = this.user.state.toUpperCase();
-    },
-
-    validateCaptcha() {
-        const val = document.getElementById('captcha-input').value.toLowerCase().trim();
-        if (val.includes(this.currentCaptcha.r)) {
-            this.initP2P();
-        } else {
-            alert("¡Nawara! Te falta calle. Ese no es el refrán.");
+        } catch (err) {
+            console.error(err);
+            alert("❌ ¡PANA! Activa la cámara y el micro arriba en el candadito 🔒 para poder entrar.");
         }
     },
 
-    // --- MQTT Matchmaking (Signaling) ---
-    initP2P() {
-        this.showScreen('hud');
-        this.addMsg("⚙️ Conectando al Barrio...", true);
-
-        // HiveMQ Public Broker (Seguro vía WebSockets)
-        this.client = new Paho.MQTT.Client("broker.hivemq.com", Number(8000), this.user.id);
+    // --- CONFIGURACIÓN PEERJS (PASO 4) ---
+    setupPeer() {
+        // Generar un ID con prefijo para el "matchmaking"
+        const randomId = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
+        const myPeerId = `hablapana-${randomId}`;
         
-        this.client.onConnectionLost = (e) => {
-            console.warn("Lobby perdido", e);
-            this.addMsg("⚠️ Conexión inestable", true);
-        };
+        this.peer = new Peer(myPeerId);
+        document.getElementById('my-peer-id').innerText = `ID: ${myPeerId.toUpperCase()}`;
 
-        this.client.onMessageArrived = (msg) => {
-            this.onSignal(JSON.parse(msg.payloadString));
-        };
+        this.peer.on('open', (id) => {
+            console.log('Mi ID de Pana es:', id);
+            this.next(); // Buscar automáticamente al entrar
+        });
 
-        this.client.connect({
-            onSuccess: () => {
-                this.client.subscribe(`hablapana/user/${this.user.id}`);
-                this.client.subscribe(`hablapana/lobby`); // Canal de escucha general
-                this.addMsg("✅ ¡Estás en la calle! Buscando pana...", true);
-                this.joinQueue();
-            },
-            useSSL: false
+        // Al recibir una llamada
+        this.peer.on('call', (call) => {
+            if (this.currentCall) this.currentCall.close();
+            
+            call.answer(this.localStream);
+            this.handleCall(call);
+        });
+
+        this.peer.on('error', (err) => {
+            console.error('PeerJS Error:', err.type);
+            if (err.type === 'unavailable-id') this.setupPeer(); // Reintentar si el ID existe
         });
     },
 
-    joinQueue() {
-        if (this.partnerId) return;
-        this.isLooking = true;
-        // Gritar al lobby que busco alguien
-        const msg = new Paho.MQTT.Message(JSON.stringify({
-            type: 'ping',
-            from: this.user.id,
-            nick: this.user.nick,
-            state: this.user.state
-        }));
-        msg.destinationName = "hablapana/lobby";
-        this.client.send(msg);
-    },
+    handleCall(call) {
+        this.currentCall = call;
+        this.showSearching(false);
 
-    onSignal(data) {
-        if (data.from === this.user.id) return; // Ignorarme
-
-        // 1. Alguien grita ping y yo busco
-        if (data.type === 'ping' && this.isLooking) {
-            this.isLooking = false;
-            this.partnerId = data.from;
-            this.startConnection(true); // Yo inicio (Offer)
-            return;
-        }
-
-        // 2. Señales directas
-        if (data.target && data.target !== this.user.id) return;
-
-        switch(data.type) {
-            case 'offer': this.handleOffer(data); break;
-            case 'answer': this.handleAnswer(data); break;
-            case 'candidate': this.handleCandidate(data); break;
-            case 'chat': this.appendMsg(data.nick, data.text, 'hero'); break;
-        }
-    },
-
-    sendSignal(type, payload) {
-        const msg = new Paho.MQTT.Message(JSON.stringify({
-            type, ...payload, target: this.partnerId, from: this.user.id
-        }));
-        msg.destinationName = `hablapana/user/${this.partnerId}`;
-        this.client.send(msg);
-    },
-
-    // --- WebRTC Logic ---
-    async startConnection(isInitiator) {
-        this.pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        call.on('stream', (remoteStream) => {
+            const remoteVideo = document.getElementById('remote-video');
+            remoteVideo.srcObject = remoteStream;
+            remoteVideo.play();
+            
+            // Simular datos del pana (En una versión Pro, estos vienen en el metadata de la llamada)
+            document.getElementById('partner-nick').innerText = "PANA " + Math.floor(Math.random() * 100);
+            document.getElementById('partner-state').innerText = "CONECTADO ⚡";
         });
 
-        this.localStream.getTracks().forEach(t => this.pc.addTrack(t, this.localStream));
-
-        this.pc.ontrack = (e) => {
-            const container = document.getElementById('remote-container');
-            container.innerHTML = '';
-            const video = document.createElement('video');
-            video.srcObject = e.streams[0];
-            video.autoplay = video.playsInline = true;
-            container.appendChild(video);
-            this.addMsg("🚀 ¡PANA CONECTADO!");
-        };
-
-        this.pc.onicecandidate = (e) => {
-            if (e.candidate) this.sendSignal('candidate', { candidate: e.candidate });
-        };
-
-        if (isInitiator) {
-            const offer = await this.pc.createOffer();
-            await this.pc.setLocalDescription(offer);
-            this.sendSignal('offer', { sdp: offer });
-        }
+        call.on('close', () => {
+            this.addPoints(1); // Ganar 1 punto por terminar una charla bien
+            this.next();
+        });
     },
 
-    async handleOffer(data) {
-        this.partnerId = data.from;
-        this.isLooking = false;
-        await this.startConnection(false);
-        await this.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-        const answer = await this.pc.createAnswer();
-        await this.pc.setLocalDescription(answer);
-        this.sendSignal('answer', { sdp: answer });
+    // --- LÓGICA DE BÚSQUEDA (PASO 4) ---
+    async next() {
+        if (this.currentCall) this.currentCall.close();
+        this.showSearching(true);
+        
+        document.getElementById('remote-video').srcObject = null;
+        document.getElementById('partner-nick').innerText = "BUSCANDO...";
+        document.getElementById('partner-state').innerText = "---";
+
+        // Simulación de "Matchmaking" Aleatorio
+        // PeerJS no tiene "listPeers", así que probaremos llamar a IDs aleatorios con nuestro prefijo
+        // En producción se usaría un servidor de señalización (Signaling) más avanzado.
+        setTimeout(() => {
+            const targetId = `hablapana-${Math.floor(Math.random() * 99999).toString().padStart(5, '0')}`;
+            const call = this.peer.call(targetId, this.localStream);
+            
+            if (call) {
+                this.handleCall(call);
+            } else {
+                this.next(); // Reintentar si no contestan
+            }
+        }, 3000);
     },
 
-    async handleAnswer(data) {
-        await this.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    // --- PANA POINTS & REPUTACIÓN (PASO 5) ---
+    loadPoints() {
+        const stored = localStorage.getItem('hablapana_pts');
+        this.points = stored ? parseInt(stored) : 100;
+        this.updatePointsUI();
+        this.checkBlock();
     },
 
-    async handleCandidate(data) {
-        await this.pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    addPoints(val) {
+        this.points += val;
+        this.savePoints();
     },
 
-    // --- Acciones HUD ---
-    next() {
-        if (this.pc) this.pc.close();
-        this.pc = null;
-        this.partnerId = null;
-        document.getElementById('remote-container').innerHTML = '<p class="placeholder-txt">BUSCANDO PANA...</p>';
-        this.addMsg("🚌 Saltaste a otro bus...", true);
-        this.joinQueue();
+    savePoints() {
+        localStorage.setItem('hablapana_pts', this.points);
+        this.updatePointsUI();
+        this.checkBlock();
     },
 
-    sendChatMsg() {
-        const input = document.getElementById('chat-input');
-        const text = input.value.trim();
-        if (!text || !this.partnerId) return;
-
-        this.appendMsg("TÚ", text, 'me');
-        this.sendSignal('chat', { text, nick: this.user.nick });
-        input.value = '';
-    },
-
-    addMsg(text, isSys = false) {
-        this.appendMsg("SISTEMA", text, isSys ? 'sys' : 'hero');
-    },
-
-    appendMsg(nick, text, type) {
-        const box = document.getElementById('chat-scroller');
-        const p = document.createElement('p');
-        p.className = `msg ${type}`;
-        p.innerText = (type === 'sys' ? '' : nick + ": ") + text;
-        box.appendChild(p);
-        box.scrollTop = box.scrollHeight;
-    },
-
-    fuchi() {
-        alert("¡REPORTADO POR FUCO! Ganas 0 puntos.");
+    report() {
+        if (!confirm("¿Seguro que este pana es un intenso? Le bajaremos la mecha.")) return;
+        
+        this.points -= 20;
+        this.savePoints();
+        alert("🤮 ¡REPORTE ENVIADO! Te descontamos 20 PanaPoints por andar con gente así.");
         this.next();
+    },
+
+    updatePointsUI() {
+        document.getElementById('pana-points').innerText = this.points;
+    },
+
+    checkBlock() {
+        if (this.points <= 0) {
+            document.getElementById('block-screen').classList.remove('hidden');
+            if (this.localStream) {
+                this.localStream.getTracks().forEach(t => t.stop());
+            }
+        }
+    },
+
+    // --- CONTROLES (PASO 3) ---
+    toggleAudio() {
+        this.isMuted = !this.isMuted;
+        this.localStream.getAudioTracks()[0].enabled = !this.isMuted;
+        document.getElementById('btn-mic').innerHTML = this.isMuted ? '🔇' : '🎤';
+        document.getElementById('btn-mic').classList.toggle('bg-red-500/20');
+    },
+
+    showSearching(show) {
+        const overlay = document.getElementById('searching-overlay');
+        overlay.style.opacity = show ? '1' : '0';
+        overlay.style.pointerEvents = show ? 'auto' : 'none';
+        
+        if (show) overlay.classList.remove('hidden');
+        else setTimeout(() => overlay.classList.add('hidden'), 500);
     }
 };
 
-// Auto-crecimiento de puntos
-setInterval(() => {
-    App.user.pts += 1;
-    const el = document.getElementById('points-val');
-    if (el) el.innerText = App.user.pts;
-}, 30000);
+// Configuración inicial de UI al cargar
+window.onload = () => {
+    // Escuchar el enter en el captcha para más rapidez
+    document.getElementById('captcha-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') HanaPana.init();
+    });
+};

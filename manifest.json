@@ -1,11 +1,12 @@
 {
-  "name": "¡Habla, Pana! 🇻🇪",
-  "short_name": "HablaPana",
-  "start_url": "/index.html",
+  "name": "Habla Pana - El OmeTV Criollo",
+  "short_name": "Habla Pana",
+  "description": "Videochat aleatorio al puro estilo venezolano.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#050810",
-  "theme_color": "#FFD700",
-  "description": "Video chat aleatorio para venezolanos. Random video chat for Venezuelans.",
+  "theme_color": "#131d2d",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "https://img.icons8.com/color/192/venezuela-flag.png",
