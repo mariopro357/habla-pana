@@ -1,6 +1,6 @@
 /* ============================================================
-   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v6.0 PRO)
-   Anti-Eco Signal System & Mutual Match Engine
+   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v7.0)
+   The Handshake Edition - No More Signal Loss
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -17,12 +17,11 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const TRIVIA_SET = [
-    { q: "¿En qué estado está el Salto Ángel?", a: "Bolívar", o: ["Amazonas", "Bolívar", "Zulia", "Lara"] },
-    { q: "¿Qué ingrediente define a la Reina Pepiada?", a: "Aguacate y Pollo", o: ["Mechada", "Aguacate y Pollo", "Caraotas", "Pernil"] },
-    { q: "¿Ave nacional de Venezuela?", a: "Turpial", o: ["Cardenal", "Turpial", "Zamuro", "Coleo"] },
-    { q: "¿Pico más alto del país?", a: "Pico Bolívar", o: ["Pico Espejo", "Naiguatá", "Pico Bolívar", "Águila"] },
-    { q: "¿Ciudad de los Caballeros?", a: "Mérida", o: ["Trujillo", "Mérida", "Valencia", "Coro"] },
-    { q: "¿Cómo se llama el dulce de leche de Coro?", a: "Dulce de Leche", o: ["Manjar", "Dulce de Leche", "Arequipe", "Arroz con Leche"] }
+    { q: "¿En qué estado está el Salto Ángel?", a: "Bolívar", o: ["Amazonas", "Bolívar", "Lara"] },
+    { q: "¿Qué define a la Reina Pepiada?", a: "Aguacate y Pollo", o: ["Mechada", "Aguacate y Pollo", "Caraotas"] },
+    { q: "¿Ave nacional?", a: "Turpial", o: ["Cardenal", "Turpial", "Zamuro"] },
+    { q: "¿Pico más alto?", a: "Pico Bolívar", o: ["Pico Espejo", "Pico Bolívar", "Naiguatá"] },
+    { q: "¿Ciudad de los Caballeros?", a: "Mérida", o: ["Coro", "Mérida", "Valencia"] }
 ];
 
 const HanaPana = {
@@ -30,7 +29,8 @@ const HanaPana = {
     peer: null, currentCall: null, localStream: null, 
     points: 100, nick: '', state: '', ig: '', myPeerId: '', 
     partnerData: null, isMicOn: true, isCamOn: true,
-    processedSignalIds: new Set(), // Para evitar duplicidad de mensajes (Eco Fix)
+    processedSignalIds: new Set(),
+    sessionRef: null,
 
     // --- INICIALIZACIÓN ---
     async init() {
@@ -39,9 +39,8 @@ const HanaPana = {
         const stateSelect = document.getElementById('state-select');
         const captchaInput = document.getElementById('captcha-input');
 
-        const nameParts = nickInput.value.trim().split(' ');
-        if (nameParts.length < 2) return alert("❌ ¡EPALE! Pon nombre y apellido real.");
-        if (!igInput.value.includes('@')) return alert("❌ Danos tu Instagram real (con @).");
+        if (nickInput.value.trim().split(' ').length < 2) return alert("❌ Pon nombre y apellido real.");
+        if (!igInput.value.includes('@')) return alert("❌ Pon tu @ de Instagram real.");
         if (captchaInput.value.toLowerCase().trim() !== "diablo") return alert("❌ Refrán errado.");
 
         this.nick = nickInput.value.trim();
@@ -50,12 +49,12 @@ const HanaPana = {
 
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480, frameRate: 24 }, 
+                video: { width: 480, height: 640 }, 
                 audio: true 
             });
             document.getElementById('local-video').srcObject = this.localStream;
             
-            this.setupChatMobile();
+            this.setupChatEvents();
 
             document.getElementById('screen-auth').style.opacity = '0';
             setTimeout(() => {
@@ -63,222 +62,225 @@ const HanaPana = {
                 document.getElementById('screen-chat').classList.remove('hidden');
                 this.setupPeer();
             }, 500);
-        } catch (e) { alert("❌ ¡Habilita la cámara, pana!"); }
+        } catch (e) { alert("❌ Activa la cámara para entrar."); }
     },
 
-    // --- CHAT ROBUSTO (MÓVIL) ---
-    setupChatMobile() {
+    // --- CHAT TÁCTIL & EVENTOS ---
+    setupChatEvents() {
         const input = document.getElementById('chat-input');
         const btn = document.getElementById('btn-chat-send');
         
-        const handleSend = () => {
-            const text = input.value.trim();
-            if (text) {
-                this.sendSignal('chat', { text });
-                input.value = '';
-                input.focus();
-            }
+        const send = () => {
+            const txt = input.value.trim();
+            if (txt) { this.sendSignal('chat', { text: txt }); input.value = ''; }
         };
 
-        btn.onclick = (e) => { e.preventDefault(); handleSend(); };
-        input.onkeypress = (e) => { if (e.key === 'Enter') handleSend(); };
+        btn.onclick = (e) => { e.preventDefault(); send(); };
+        input.onkeypress = (e) => { if (e.key === 'Enter') send(); };
     },
 
-    // --- TRIVIA ENGINE ---
+    toggleChat() {
+        const napkin = document.getElementById('chat-napkin');
+        napkin.classList.toggle('chat-open');
+    },
+
+    // --- TRIVIA MOTOR ---
     shotTrivia() {
-        const overlay = document.getElementById('searching-overlay');
-        if (overlay.classList.contains('hidden')) return;
+        const ov = document.getElementById('searching-overlay');
+        if (ov.classList.contains('hidden')) return;
         
-        const qData = TRIVIA_SET[Math.floor(Math.random() * TRIVIA_SET.length)];
-        document.getElementById('trivia-q').innerText = qData.q;
-        const optBox = document.getElementById('trivia-options');
-        optBox.innerHTML = '';
+        const q = TRIVIA_SET[Math.floor(Math.random() * TRIVIA_SET.length)];
+        document.getElementById('trivia-q').innerText = q.q;
+        const opts = document.getElementById('trivia-options');
+        opts.innerHTML = '';
         
-        qData.o.forEach(opt => {
+        q.o.forEach(o => {
             const b = document.createElement('button');
             b.className = "trivia-option-btn";
-            b.innerText = opt;
+            b.innerText = o;
             b.onclick = () => {
-                if (opt === qData.a) {
-                    b.classList.add("correct");
-                    this.points += 5;
-                    setTimeout(() => this.shotTrivia(), 800);
-                } else {
-                    b.classList.add("wrong");
-                    setTimeout(() => this.shotTrivia(), 800);
-                }
-                this.updatePointsUI();
+                if (o === q.a) { b.classList.add("correct"); this.points += 5; setTimeout(() => this.shotTrivia(), 800); }
+                else { b.classList.add("wrong"); setTimeout(() => this.shotTrivia(), 800); }
+                this.updateUI();
             };
-            optBox.appendChild(b);
+            opts.appendChild(b);
         });
     },
 
-    // --- MATCH MUTUO & SEÑALES (FIX ECO) ---
-    async sendMatchSignal(type) {
+    // --- EL HANDSHAKE (LA CLAVE v7.0) 🤝 ---
+    async startHandshake(partnerId) {
+        // Generar ID de sesión único para ambos
+        const sId = [this.myPeerId, partnerId].sort().join('_');
+        const sPath = ref(db, `active_sessions/${sId}/${this.myPeerId}`);
+        
+        // Enviamos nuestra identidad al nodo de sesión
+        await set(sPath, { id: this.myPeerId, nick: this.nick, ig: this.ig, state: this.state });
+        
+        // Escuchamos la identidad del otro en el mismo nodo
+        const otherPath = ref(db, `active_sessions/${sId}/${partnerId}`);
+        onValue(otherPath, (snap) => {
+            const data = snap.val();
+            if (data && !this.partnerData) {
+                this.partnerData = data;
+                document.getElementById('partner-nick').innerText = data.nick;
+                document.getElementById('partner-state').innerText = data.state.toUpperCase();
+                this.listenToSignals(); // Ahora que tenemos partnerID, escuchamos señales
+                this.appendMsg("SISTEMA", `¡Conectado con ${data.nick}!`, 'sys');
+            }
+        });
+
+        // Limpiar sesión al desconectar
+        onDisconnect(sPath).remove();
+    },
+
+    // --- SEÑALES & MATCH MUTUO ---
+    async sendSignal(type, data) {
         if (!this.partnerData) return;
-        this.sendSignal('interest', { type });
-        const sessionPath = [this.myPeerId, this.partnerData.id].sort().join('_');
-        await set(ref(db, `session_matches/${sessionPath}/${this.myPeerId}`), type);
-        this.appendMsg("SISTEMA", `Enviando ${type === 'heart' ? '❤️' : '⚽'}...`, 'sys');
+        const msgId = Date.now().toString() + Math.random().toString(16).substr(2,4);
+        const sRef = ref(db, `signals/${this.partnerData.id}/${msgId}`);
+        await set(sRef, { type, ...data, nick: this.nick, timestamp: Date.now() });
+        if (type === 'chat') this.appendMsg("TÚ", data.text);
+    },
+
+    async sendMatchSignal(v) {
+        if (!this.partnerData) return;
+        const sId = [this.myPeerId, this.partnerData.id].sort().join('_');
+        await set(ref(db, `matches/${sId}/${this.myPeerId}`), v);
+        this.sendSignal('interest', { v });
+        this.appendMsg("SISTEMA", `Enviando ${v === 'heart' ? '❤️' : '⚽'}...`);
     },
 
     listenToSignals() {
-        const signalRef = ref(db, `signals/${this.myPeerId}`);
+        if (!this.partnerData) return;
         
-        // Limpiamos listener previo para evitar multiplicidad (Eco Fix)
-        off(signalRef);
-        
-        onValue(signalRef, (snap) => {
-            const signals = snap.val();
-            if (signals) {
-                Object.keys(signals).forEach(sid => {
-                    // Si ya procesamos este ID único de señal, lo ignoramos
-                    if (this.processedSignalIds.has(sid)) return;
-                    this.processedSignalIds.add(sid);
-
-                    const data = signals[sid];
-                    if (data.type === 'interest') {
-                        const icon = data.type === 'heart' ? '❤️' : '⚽';
-                        this.appendMsg("SISTEMA", `¡A ${data.nick} le gustas! Dale ${icon}`, 'sys');
-                    } else if (data.type === 'chat') {
-                        this.appendMsg(data.nick, data.text, 'hero');
-                    }
+        // Señales directas
+        const sigRef = ref(db, `signals/${this.myPeerId}`);
+        off(sigRef);
+        onValue(sigRef, (snap) => {
+            const msgs = snap.val();
+            if (msgs) {
+                Object.keys(msgs).forEach(mid => {
+                    if (this.processedSignalIds.has(mid)) return;
+                    this.processedSignalIds.add(mid);
+                    const d = msgs[mid];
+                    if (d.type === 'interest') this.appendMsg("SISTEMA", `¡A ${d.nick} le gustas! Dale Match ❤️`);
+                    else if (d.type === 'chat') this.appendMsg(d.nick, d.text);
                 });
-                remove(signalRef).catch(() => {}); // Limpiar de DB
+                remove(sigRef);
             }
         });
 
-        // Mutuo Match Listener
-        if (this.partnerData) {
-            const sPath = [this.myPeerId, this.partnerData.id].sort().join('_');
-            const sRef = ref(db, `session_matches/${sPath}`);
-            off(sRef);
-            onValue(sRef, (snap) => {
-                const votes = snap.val();
-                if (votes && Object.keys(votes).length === 2) {
-                    const vals = Object.values(votes);
-                    if (vals[0] === vals[1]) {
-                        this.triggerMutualMatch(vals[0]);
-                        remove(sRef).catch(() => {});
-                    }
+        // Match Mutuo
+        const sId = [this.myPeerId, this.partnerData.id].sort().join('_');
+        const mRef = ref(db, `matches/${sId}`);
+        off(mRef);
+        onValue(mRef, (snap) => {
+            const v = snap.val();
+            if (v && Object.keys(v).length === 2) {
+                const vals = Object.values(v);
+                if (vals[0] === vals[1]) {
+                    this.triggerMatch(vals[0]);
+                    remove(mRef);
                 }
-            });
-        }
-    },
-
-    triggerMutualMatch(type) {
-        const overlay = document.getElementById(`mutual-match-${type}`);
-        const prompt = document.getElementById('match-prompt');
-        const igVal = document.getElementById('ig-val');
-        
-        overlay.classList.remove('hidden');
-        setTimeout(() => {
-            overlay.classList.add('hidden');
-            igVal.innerText = this.partnerData.ig;
-            prompt.classList.remove('hidden');
-            this.appendMsg("LOGRADO", "¡MATCH REAL! IG Revelado.", 'sys');
-        }, 2800);
-    },
-
-    async sendSignal(type, data) {
-        if (!this.partnerData) return;
-        const msgId = Date.now().toString() + Math.random().toString(16).substr(2, 4);
-        const sRef = ref(db, `signals/${this.partnerData.id}/${msgId}`);
-        await set(sRef, { type, ...data, nick: this.nick, timestamp: Date.now() });
-        if (type === 'chat') this.appendMsg("TÚ", data.text, 'me');
-    },
-
-    // --- PEERJS MOTOR PRO ---
-    setupPeer() {
-        const rid = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
-        this.myPeerId = `hp-${rid}`;
-        this.peer = new Peer(this.myPeerId);
-        
-        this.peer.on('open', () => { 
-            this.next(); 
+            }
         });
+    },
+
+    triggerMatch(t) {
+        const ov = document.getElementById(`mutual-match-${t}`);
+        const pr = document.getElementById('match-prompt');
+        ov.classList.remove('hidden');
+        setTimeout(() => {
+            ov.classList.add('hidden');
+            document.getElementById('ig-val').innerText = this.partnerData.ig;
+            pr.classList.remove('hidden');
+        }, 2500);
+    },
+
+    // --- MOTOR PEERJS v7.0 ---
+    setupPeer() {
+        const id = `hp-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}`;
+        this.myPeerId = id;
+        this.peer = new Peer(id);
+        this.peer.on('open', () => this.next());
         this.peer.on('call', (call) => {
             if (this.currentCall) this.currentCall.close();
             call.answer(this.localStream);
-            this.handleCall(call);
+            this.handleCall(call, false);
         });
     },
 
     async next() {
         if (this.currentCall) this.currentCall.close();
-        this.processedSignalIds.clear(); // Reset eco fix en cada pana nuevo
+        this.partnerData = null;
+        this.processedSignalIds.clear();
         this.showSearching(true);
         this.shotTrivia();
         
-        const lobbyRef = ref(db, 'waiting_v6');
-        const snap = await get(lobbyRef);
+        const lobby = ref(db, 'waiting_v7');
+        const snap = await get(lobby);
         const waiters = snap.val();
 
         if (waiters) {
-            const others = Object.keys(waiters).filter(id => id !== this.myPeerId);
+            const others = Object.keys(waiters).filter(i => i !== this.myPeerId);
             if (others.length > 0) {
-                const targetId = others[0];
-                this.partnerData = waiters[targetId];
-                const call = this.peer.call(targetId, this.localStream);
+                const tid = others[0];
+                const call = this.peer.call(tid, this.localStream);
                 if (call) {
-                    await remove(ref(db, `waiting_v6/${targetId}`));
-                    this.handleCall(call);
+                    await remove(ref(db, `waiting_v7/${tid}`));
+                    this.handleCall(call, tid);
                     return;
                 }
             }
         }
 
-        const myLobbyRef = ref(db, `waiting_v6/${this.myPeerId}`);
-        await set(myLobbyRef, { id: this.myPeerId, nick: this.nick, state: this.state, ig: this.ig });
-        onDisconnect(myLobbyRef).remove();
+        const myRef = ref(db, `waiting_v7/${this.myPeerId}`);
+        await set(myRef, { id: this.myPeerId });
+        onDisconnect(myRef).remove();
     },
 
-    handleCall(call) {
+    handleCall(call, tid) {
         this.currentCall = call;
         this.showSearching(false);
         document.getElementById('match-prompt').classList.add('hidden');
-        this.listenToSignals();
         
-        call.on('stream', (st) => {
-            document.getElementById('remote-video').srcObject = st;
-            document.getElementById('partner-nick').innerText = this.partnerData ? this.partnerData.nick : "PANA NUEVO";
-            document.getElementById('partner-state').innerText = (this.partnerData ? this.partnerData.state : "---").toUpperCase();
+        // IMPORTANTE: Handshake
+        // Si yo llamé, tid es el ID. Si me llamaron, PeerJS lo tiene en call.peer
+        const remotePeerId = tid || call.peer;
+        this.startHandshake(remotePeerId);
+
+        call.on('stream', (s) => {
+            document.getElementById('remote-video').srcObject = s;
+            document.getElementById('partner-nick').innerText = "CONECTANDO...";
         });
-        call.on('close', () => { this.next(); });
+        call.on('close', () => this.next());
     },
 
-    // --- CONTROLES MUTE ---
+    // --- CONTROLES & UI ---
     toggleMic() {
         this.isMicOn = !this.isMicOn;
         this.localStream.getAudioTracks()[0].enabled = this.isMicOn;
-        const btn = document.getElementById('btn-mic-toggle');
-        btn.innerHTML = this.isMicOn ? '🎤' : '🔇';
-        btn.classList.toggle('btn-off', !this.isMicOn);
+        document.getElementById('btn-mic-toggle').classList.toggle('btn-off', !this.isMicOn);
     },
-
     toggleCam() {
         this.isCamOn = !this.isCamOn;
         this.localStream.getVideoTracks()[0].enabled = this.isCamOn;
-        const btn = document.getElementById('btn-cam-toggle');
-        btn.innerHTML = this.isCamOn ? '🎥' : '❌';
-        btn.classList.toggle('btn-off', !this.isCamOn);
+        document.getElementById('btn-cam-toggle').classList.toggle('btn-off', !this.isCamOn);
     },
-
-    appendMsg(nick, text, type) {
-        const box = document.getElementById('chat-scroller');
+    appendMsg(n, t) {
+        const sc = document.getElementById('chat-scroller');
         const d = document.createElement('div');
-        d.className = "border-b border-gray-100 py-2";
-        d.innerHTML = `<span class="font-bold text-red-600 text-[14px]">${nick}:</span> <span class="font-napkin text-[16px]">${text}</span>`;
-        box.appendChild(d);
-        box.scrollTop = box.scrollHeight;
+        d.innerHTML = `<b class="text-red-600 text-xs">${n}:</b> <span class="font-napkin">${t}</span>`;
+        sc.appendChild(d);
+        sc.scrollTop = sc.scrollHeight;
     },
-
-    updatePointsUI() { 
-        document.getElementById('pana-points').innerText = this.points + " PTS"; 
-    },
-    showSearching(s) { 
-        document.getElementById('searching-overlay').classList.toggle('hidden', !s);
-    }
+    updateUI() { document.getElementById('pana-points').innerText = `${this.points} PT`; },
+    showSearching(s) { document.getElementById('searching-overlay').classList.toggle('hidden', !s); },
+    report() { if(confirm("¿Reportar?")) this.next(); }
 };
 
 window.HanaPana = HanaPana;
+document.addEventListener('DOMContentLoaded', () => {
+    // Evitar que el zoom de iOS moleste
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+});

@@ -1,6 +1,6 @@
 /* ============================================================
-   HABLA PANA! 🇻🇪 — CUSTOM CSS v6.0 PRO
-   Premium Glassmorphism & UI Stability
+   HABLA PANA! 🇻🇪 — CUSTOM CSS v7.0 RESCUE
+   Táctil & Handshake Optimization
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&display=swap');
@@ -20,7 +20,7 @@ body { background: var(--bg-dark); font-family: 'Inter', sans-serif; color: #fff
 .font-bebas { font-family: 'Bebas Neue', cursive; }
 .font-napkin { font-family: 'Dancing Script', cursive; }
 
-/* 💎 GLASSMORPHISM PREMIUM */
+/* 💎 GLASSMORPHISM v7.0 */
 .glass-premium {
     background: var(--glass-bg);
     backdrop-filter: blur(25px);
@@ -29,64 +29,67 @@ body { background: var(--bg-dark); font-family: 'Inter', sans-serif; color: #fff
 }
 
 .glass-hud {
-    background: rgba(10, 15, 30, 0.7);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(35px);
+    -webkit-backdrop-filter: blur(35px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 -20px 80px rgba(0,0,0,0.8);
 }
 
 .glass-match {
-    background: rgba(234, 179, 8, 0.15);
+    background: rgba(234, 179, 8, 0.2);
     backdrop-filter: blur(40px);
-    border: 1.5px solid rgba(234, 179, 8, 0.4);
+    border: 2px solid rgba(234, 179, 8, 0.5);
+    z-index: 100;
 }
 
-/* 📜 CHAT SERVILLETA PRO */
+/* 📜 CHAT SERVILLETA v7.0 TÁCTIL */
 #chat-napkin {
     background: #fdfdfd;
     background-image: radial-gradient(#e5e5f7 0.8px, transparent 0.8px), radial-gradient(#e5e5f7 0.8px, #fdfdfd 0.8px);
     background-size: 24px 24px;
-    background-position: 0 0, 12px 12px;
-    box-shadow: 20px 0 80px rgba(0,0,0,1);
+    z-index: 80;
+    box-shadow: 20px 0 100px rgba(0,0,0,1);
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+#chat-napkin.chat-open { transform: translateX(0) !important; }
 
 #chat-scroller::-webkit-scrollbar { width: 4px; }
 #chat-scroller::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 20px; }
 
-/* 🎮 TRIVIA v6.0 */
+/* 🎮 TRIVIA v7.0 */
 .trivia-option-btn {
     background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
     padding: 16px; border-radius: 20px;
     text-align: center; font-size: 15px; font-weight: 800;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); color: #fff;
+    transition: all 0.2s; color: #fff;
     cursor: pointer;
 }
-.trivia-option-btn:active { transform: scale(0.97) translateY(2px); background: rgba(255,255,255,0.08); }
-.trivia-option-btn.correct { background: #10b981; color: #000; border-color: #10b981; box-shadow: 0 0 25px rgba(16,185,129,0.3); }
+.trivia-option-btn.correct { background: #10b981; color: #000; border-color: #10b981; }
 .trivia-option-btn.wrong { background: #ef4444; color: #fff; border-color: #ef4444; opacity: 0.8; }
 
 /* 🎥 VIDEOS & HUD */
 .video-fit { width: 100%; height: 100%; object-fit: cover; }
-#searching-overlay { transition: backdrop-filter 0.5s ease; }
+#searching-overlay { transition: backdrop-filter 0.5s ease; z-index: 30; }
 
-@keyframes pulse-search { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.05); opacity: 1; } }
-.animate-pulse-search { animation: pulse-search 1.5s infinite ease-in-out; }
+@keyframes pulse-search { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.animate-pulse-search { animation: pulse-search 1.5s infinite; }
 
-.btn-active:active { transform: scale(0.85) rotate(2deg); filter: brightness(1.2); }
+.btn-active:active { transform: scale(0.8); }
 .btn-active { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
 /* 🔕 MUTE STATE */
-.btn-off { background: rgba(239, 68, 68, 0.4) !important; border-color: rgba(239, 68, 68, 0.6) !important; box-shadow: 0 0 20px rgba(239,68,68,0.2); }
+.btn-off { background: rgba(239, 68, 68, 0.5) !important; color: #fff !important; pulse: 1s; }
 
-/* ✨ MUTUAL MATCH (ANIMATION PRO) */
-@keyframes match-pop-v6 {
-    0% { transform: scale(0.2) rotate(-15deg); opacity: 0; filter: blur(10px); }
-    50% { transform: scale(1.3) rotate(5deg); opacity: 1; filter: blur(0); }
-    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+/* ✨ MUTUAL MATCH (ANIMATION v7.0) */
+@keyframes match-pop-v7 {
+    0% { transform: scale(0.2); opacity: 0; filter: blur(10px); }
+    50% { transform: scale(1.3); opacity: 1; filter: blur(0); }
+    100% { transform: scale(1); opacity: 1; }
 }
-.animate-match-pop { animation: match-pop-v6 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.animate-match-pop { animation: match-pop-v7 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
 @keyframes slide-in-top {
     0% { transform: translateY(-30px); opacity: 0; }
@@ -94,28 +97,24 @@ body { background: var(--bg-dark); font-family: 'Inter', sans-serif; color: #fff
 }
 .animate-slide-in { animation: slide-in-top 0.5s ease-out forwards; }
 
-@keyframes scale-in { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-.scale-in { animation: scale-in 1s ease-out; }
-
-/* 📱 MOBILE RESPONSIVE PRO */
+/* 📱 MOBILE RESPONSIVE v7.0 RESCUE */
 @media (max-width: 768px) {
-    #chat-napkin { width: 44px; padding: 12px 8px; border-radius: 0 35px 35px 0; z-index: 100; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); } 
-    #chat-napkin:active { width: 85%; padding: 25px; }
-    #chat-napkin h4, #chat-napkin #chat-scroller, #chat-napkin .absolute.bottom-6 { opacity: 0; transition: 0.3s; pointer-events: none; }
-    #chat-napkin:active h4, #chat-napkin:active #chat-scroller, #chat-napkin:active .absolute.bottom-6 { opacity: 1; pointer-events: auto; }
+    #chat-napkin { width: 85%; height: 450px; bottom: 100px; transform: translateX(-105%); }
+    .glass-hud { padding: 4px 10px; height: 75px; }
+    #remote-video-container video { object-position: center; }
+    #local-video-container { width: 100px; height: 140px; bottom: 190px; right: 15px; }
 }
 
-@media (max-height: 700px) {
-    #screen-auth h1 { font-size: 5rem; }
-    .glass-premium { padding: 1.5rem; border-radius: 2rem; }
-    #chat-napkin { height: 350px; }
+@media (min-width: 769px) {
+    #chat-napkin { width: 300px; top: 1/2; transform: translateY(-50%) translateX(-100%); }
+    #chat-napkin:hover { transform: translateY(-50%) translateX(0%); }
+    .md\:hidden { display: none; }
 }
 
 #remote-video-container video { pointer-events: none; }
-#local-video-container video { border-radius: 2.5rem; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* SAFE AREA PADDING FOR MODER PHONES */
+/* SAFE AREA PADDING */
 nav.glass-hud { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
