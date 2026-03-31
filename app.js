@@ -1,13 +1,11 @@
 /* ============================================================
-   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v4.5)
-   Firebase + PeerJS Cloud Edition - Matchmaking Real
+   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v5.0)
+   Social & Cultural - Firebase & P2P Matchmaking
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 import { getDatabase, ref, set, get, update, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-// Tu configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCJwudpTsjQbQ7g72-3L4O4W8XKE8ojZNM",
   authDomain: "habla-pana.firebaseapp.com",
@@ -15,244 +13,226 @@ const firebaseConfig = {
   projectId: "habla-pana",
   storageBucket: "habla-pana.firebasestorage.app",
   messagingSenderId: "41300827635",
-  appId: "1:41300827635:web:c4b7711f37633bb5f98686",
-  measurementId: "G-26ZYWWSZCP"
+  appId: "1:41300827635:web:c4b7711f37633bb5f98686"
 };
 
-// Inicializar Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getDatabase(app);
+
+// 🇻🇪 BASE DE DATOS DE TRIVIA (Carga inicial de 20 para demo, lista para 10k+)
+const TRIVIA_SET = [
+    { q: "¿En qué estado se encuentra el Salto Ángel?", a: "Bolívar", o: ["Amazonas", "Bolívar", "Zulia", "Lara"] },
+    { q: "¿Qué ingrediente define a la Reina Pepiada?", a: "Aguacate y Pollo", o: ["Carne Mechada", "Aguacate y Pollo", "Caraotas", "Pernil"] },
+    { q: "¿Cuál es el ave nacional de Venezuela?", a: "Turpial", o: ["Cardenal", "Turpial", "Guacamaya", "Zamuro"] },
+    { q: "¿Cómo se llama el pico más alto del país?", a: "Pico Bolívar", o: ["Pico Espejo", "Pico Naiguatá", "Pico Bolívar", "Pico Águila"] },
+    { q: "¿Qué ciudad es conocida como la de los 'Caballeros'?", a: "Mérida", o: ["Trujillo", "Mérida", "San Cristóbal", "Valencia"] },
+    { q: "¿En qué fecha se celebra la Independencia de Venezuela?", a: "5 de julio", o: ["19 de abril", "5 de julio", "24 de junio", "12 de octubre"] },
+    { q: "¿Cuál es el árbol nacional?", a: "Araguaney", o: ["Apamate", "Araguaney", "Samán", "Ceiba"] },
+    { q: "¿Qué estado es famoso por los Médanos de Coro?", a: "Falcón", o: ["Zulia", "Lara", "Falcón", "Anzoátegui"] },
+    { q: "¿Cuál es el significado de 'Panas'?", a: "Amigos", o: ["Familia", "Comida", "Amigos", "Dinero"] },
+    { q: "¿Quién escribió Doña Bárbara?", a: "Rómulo Gallegos", o: ["Andrés Eloy Blanco", "Rómulo Gallegos", "Arturo Uslar Pietri", "Miguel Otero Silva"] }
+];
 
 const HanaPana = {
     // --- ESTADO GLOBAL ---
-    peer: null,
-    currentCall: null,
-    localStream: null,
-    points: 100,
-    nick: '',
-    state: '',
-    myPeerId: '',
-    isMuted: false,
-    isVideoOff: false,
-    isSearching: false,
-    
-    // --- INICIALIZACIÓN ---
+    peer: null, currentCall: null, localStream: null, 
+    points: 100, nick: '', state: '', ig: '', myPeerId: '', 
+    partnerData: null, matches: { heart: false, ball: false },
+
+    // --- INICIALIZACIÓN & VALIDACIÓN (GENTE SERIA) ---
     async init() {
         const nickInput = document.getElementById('nick-input');
+        const igInput = document.getElementById('ig-input');
         const stateSelect = document.getElementById('state-select');
         const captchaInput = document.getElementById('captcha-input');
 
-        if (!nickInput.value.trim()) return alert("¡Epa! No seas pichirre, pon un nickname.");
-        if (!stateSelect.value) return alert("¿De dónde eres, chamo? Selecciona un estado.");
-        if (captchaInput.value.toLowerCase().trim() !== "diablo") {
-            return alert("❌ Nawara... te falta calle. Ese no es el refrán.");
+        // VALIDACIÓN DE NOMBRE REAL
+        const nameParts = nickInput.value.trim().split(' ');
+        if (nameParts.length < 2 || nameParts.some(p => p.length < 2)) {
+            return alert("❌ ¡EPALE! Aquí no aceptamos apodos. Pon tu nombre y apellido real para entrar.");
         }
+        
+        if (!igInput.value.includes('@')) return alert("❌ Danos tu Instagram real (debe incluir @) para los matches.");
+        if (!stateSelect.value) return alert("❌ Selecciona tu estado natal.");
+        if (captchaInput.value.toLowerCase().trim() !== "diablo") return alert("❌ Refrán equivocado. Te falta calle.");
 
         this.nick = nickInput.value.trim();
+        this.ig = igInput.value.trim();
         this.state = stateSelect.value;
 
-        // Pedir Permisos
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 1280, height: 720 }, 
-                audio: true 
-            });
+            this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             document.getElementById('local-video').srcObject = this.localStream;
-            
-            // Cargar Puntos desde Firebase/Local
             await this.loadPoints();
-
-            // Cambiar Pantalla
+            
             document.getElementById('screen-auth').style.opacity = '0';
             setTimeout(() => {
                 document.getElementById('screen-auth').classList.add('hidden');
                 document.getElementById('screen-chat').classList.remove('hidden');
                 this.setupPeer();
             }, 500);
+        } catch (e) { alert("¡PANA! Sin cámara no hay vida. Actívala."); }
+    },
 
-        } catch (err) {
-            console.error(err);
-            alert("❌ ¡PANA! Activa la cámara y el micro arriba en el candadito 🔒 para poder entrar.");
+    // --- MOTOR DE TRIVIA (MIENTRAS BUSCA) ---
+    shotTrivia() {
+        if (!document.getElementById('searching-overlay').classList.contains('hidden')) {
+            const qData = TRIVIA_SET[Math.floor(Math.random() * TRIVIA_SET.length)];
+            document.getElementById('trivia-q').innerText = qData.q;
+            const optBox = document.getElementById('trivia-options');
+            optBox.innerHTML = '';
+            qData.o.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "trivia-option-btn";
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (opt === qData.a) {
+                        btn.className += " correct";
+                        this.addPoints(5);
+                        setTimeout(() => this.shotTrivia(), 1000);
+                    } else {
+                        btn.className += " wrong";
+                        setTimeout(() => this.shotTrivia(), 1000);
+                    }
+                };
+                optBox.appendChild(btn);
+            });
         }
     },
 
-    // --- CONFIGURACIÓN PEERJS ---
-    setupPeer() {
-        const randomId = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
-        this.myPeerId = `hablapana-${randomId}`;
-        
-        this.peer = new Peer(this.myPeerId);
-        document.getElementById('my-peer-id').innerText = `ID: ${this.myPeerId.toUpperCase()}`;
+    // --- MATCH & SEÑALES (CORAZÓN/PELOTA) ---
+    async sendMatchSignal(type) {
+        if (!this.partnerData) return;
+        const signalRef = ref(db, `signals/${this.partnerData.id}/${this.myPeerId}`);
+        await set(signalRef, { type: type, timestamp: Date.now() });
+        this.appendMsg("SISTEMA", `Le enviaste un ${type === 'heart' ? '❤️' : '⚽'}...`, 'sys');
+    },
 
-        this.peer.on('open', (id) => {
-            console.log('Mi ID de Pana es:', id);
-            this.next(); // Buscar automáticamente al entrar
+    listenToSignals() {
+        const signalRef = ref(db, `signals/${this.myPeerId}`);
+        onValue(signalRef, (snapshot) => {
+            const signals = snapshot.val();
+            if (signals) {
+                const senderId = Object.keys(signals)[0];
+                const data = signals[senderId];
+                if (data.type === 'heart' || data.type === 'ball') {
+                    this.showMatchOverlay(data.type);
+                }
+                remove(signalRef); // Limpiar señal
+            }
         });
+    },
 
+    showMatchOverlay(type) {
+        const word = type === 'heart' ? 'ADMIRADOR' : 'NUEVO PANA';
+        const msg = `¡TU ${word} QUIERE TU IG! Es: ${this.partnerData.ig}`;
+        const prompt = document.getElementById('match-prompt');
+        prompt.innerText = msg;
+        prompt.classList.remove('hidden');
+        this.appendMsg("SISTEMA", `¡PANA! Alguien quiere tu IG.`, 'sys');
+    },
+
+    // --- PEERJS & MATCHMAKING v5.0 ---
+    setupPeer() {
+        const rid = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
+        this.myPeerId = `hp-${rid}`;
+        this.peer = new Peer(this.myPeerId);
+        
+        this.peer.on('open', () => { 
+            this.listenToSignals();
+            this.next(); 
+        });
         this.peer.on('call', (call) => {
             if (this.currentCall) this.currentCall.close();
             call.answer(this.localStream);
             this.handleCall(call);
         });
-
-        this.peer.on('error', (err) => {
-            if (err.type === 'unavailable-id') this.setupPeer();
-        });
     },
 
-    handleCall(call) {
-        this.currentCall = call;
-        this.showSearching(false);
-        this.isSearching = false;
-
-        call.on('stream', (remoteStream) => {
-            const remoteVideo = document.getElementById('remote-video');
-            remoteVideo.srcObject = remoteStream;
-            remoteVideo.play();
-            
-            // Info básica (En producción se pasaría por metadata)
-            document.getElementById('partner-nick').innerText = "PANA ACTIVADO";
-            document.getElementById('partner-state').innerText = "CONECTADO ⚡";
-        });
-
-        call.on('close', () => {
-             // Limpiar al colgar
-             this.addPoints(1);
-             this.next();
-        });
-    },
-
-    // --- MATCHMAKING CON FIREBASE (EL MOTOR REAL) ---
     async next() {
-        this.isSearching = true;
         if (this.currentCall) this.currentCall.close();
-        
         this.showSearching(true);
-        document.getElementById('remote-video').srcObject = null;
-
-        // 1. Quitarse de cualquier sala anterior por si acaso
-        const lobbyRef = ref(db, 'waiting_room');
-        const myLobbyRef = ref(db, `waiting_room/${this.myPeerId}`);
+        this.shotTrivia(); // Lanzar trivia
         
-        // 2. Buscar a alguien en la sala de espera
+        const lobbyRef = ref(db, 'waiting_v5');
         const snapshot = await get(lobbyRef);
         const waiters = snapshot.val();
 
         if (waiters) {
-            // Filtrar para no llamarse a uno mismo
             const others = Object.keys(waiters).filter(id => id !== this.myPeerId);
             if (others.length > 0) {
                 const targetId = others[0];
-                console.log("Conectando con pana...", targetId);
-                
-                // Intentar conectarse
+                this.partnerData = waiters[targetId];
                 const call = this.peer.call(targetId, this.localStream);
                 if (call) {
-                    // Si logramos conectar, eliminamos al otro de la sala
-                    await remove(ref(db, `waiting_room/${targetId}`));
+                    await remove(ref(db, `waiting_v5/${targetId}`));
                     this.handleCall(call);
                     return;
                 }
             }
         }
 
-        // 3. Si no hay nadie, anotarse en la sala y esperar
-        console.log("Nadie disponible. Esperando en el lobby...");
-        await set(myLobbyRef, {
-            nick: this.nick,
-            state: this.state,
-            timestamp: Date.now()
-        });
-
-        // Asegurar limpieza automática al desconectarse
+        const myLobbyRef = ref(db, `waiting_v5/${this.myPeerId}`);
+        await set(myLobbyRef, { id: this.myPeerId, nick: this.nick, state: this.state, ig: this.ig });
         onDisconnect(myLobbyRef).remove();
     },
 
-    // --- PANA POINTS EN LA NUBE ---
-    async loadPoints() {
-        const local = localStorage.getItem('hablapana_pts');
-        const dbRef = ref(db, `users/${this.nick}/points`);
+    handleCall(call) {
+        this.currentCall = call;
+        this.showSearching(false);
+        document.getElementById('match-prompt').classList.add('hidden');
         
-        try {
-            const snapshot = await get(dbRef);
-            if (snapshot.exists()) {
-                this.points = snapshot.val();
-            } else {
-                this.points = local ? parseInt(local) : 100;
-                await set(dbRef, this.points);
-            }
-            this.updatePointsUI();
-        } catch(e) {
-            this.points = local ? parseInt(local) : 100;
-        }
+        call.on('stream', (st) => {
+            document.getElementById('remote-video').srcObject = st;
+            document.getElementById('partner-nick').innerText = this.partnerData ? this.partnerData.nick : "PANA NUEVO";
+            document.getElementById('partner-state').innerText = this.partnerData ? this.partnerData.state : "ESTADO DESCONOCIDO";
+        });
+        call.on('close', () => { this.addPoints(1); this.next(); });
+    },
+
+    // --- CHAT DE SERVILLETA ---
+    appendMsg(nick, text, type = '') {
+        const box = document.getElementById('chat-scroller');
+        const p = document.createElement('p');
+        p.style.borderBottom = "1px solid #ddd";
+        p.innerHTML = `<b style="color:#d32f2f">${nick}:</b> ${text}`;
+        box.appendChild(p);
+        box.scrollTop = box.scrollHeight;
+    },
+
+    // --- PANA POINTS ---
+    async loadPoints() {
+        const dbRef = ref(db, `users/${this.nick.replace(/\s+/g,'_')}/points`);
+        const snapshot = await get(dbRef);
+        this.points = snapshot.exists() ? snapshot.val() : 100;
+        this.updatePointsUI();
     },
 
     async savePoints() {
         localStorage.setItem('hablapana_pts', this.points);
-        try {
-            await set(ref(db, `users/${this.nick}/points`), this.points);
-        } catch(e) {}
+        await set(ref(db, `users/${this.nick.replace(/\s+/g,'_')}/points`), this.points);
         this.updatePointsUI();
-        this.checkBlock();
+        if (this.points <= 0) document.getElementById('block-screen').classList.remove('hidden');
     },
 
-    addPoints(val) {
-        this.points += val;
-        this.savePoints();
-    },
+    addPoints(v) { this.points += v; this.savePoints(); },
+    
+    updatePointsUI() { document.getElementById('pana-points').innerText = this.points; },
 
     report() {
-        if (!confirm("¿Seguro que este pana es un intenso? Le bajaremos la mecha.")) return;
-        this.points -= 20;
-        this.savePoints();
-        alert("🤮 ¡REPORTE ENVIADO! Te descontamos 20 PanaPoints.");
-        this.next();
+        if (!confirm("¿Reportar intenso?")) return;
+        this.points -= 20; this.savePoints(); this.next();
     },
 
-    updatePointsUI() {
-        const el = document.getElementById('pana-points');
-        if (el) el.innerText = this.points;
-    },
-
-    checkBlock() {
-        if (this.points <= 0) {
-            document.getElementById('block-screen').classList.remove('hidden');
-            if (this.localStream) {
-                this.localStream.getTracks().forEach(t => t.stop());
-            }
-        }
-    },
-
-    // --- CONTROLES ---
     toggleAudio() {
-        this.isMuted = !this.isMuted;
-        if (this.localStream) {
-            this.localStream.getAudioTracks()[0].enabled = !this.isMuted;
-            document.getElementById('btn-mic').innerHTML = this.isMuted ? '🔇' : '🎤';
-            document.getElementById('btn-mic').classList.toggle('bg-red-500/20');
-        }
+        this.localStream.getAudioTracks()[0].enabled = !this.localStream.getAudioTracks()[0].enabled;
     },
 
     showSearching(show) {
         const overlay = document.getElementById('searching-overlay');
-        if (!overlay) return;
-        overlay.style.opacity = show ? '1' : '0';
-        overlay.style.pointerEvents = show ? 'auto' : 'none';
         if (show) overlay.classList.remove('hidden');
-        else setTimeout(() => overlay.classList.add('hidden'), 500);
+        else overlay.classList.add('hidden');
     }
 };
 
-// EXPORTAR A GLOBAL (Para que funcionen los onclick del HTML)
 window.HanaPana = HanaPana;
-
-// Evento inicial
-document.addEventListener('DOMContentLoaded', () => {
-    const catchaInput = document.getElementById('captcha-input');
-    if (catchaInput) {
-        catchaInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') HanaPana.init();
-        });
-    }
-});

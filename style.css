@@ -1,64 +1,81 @@
 /* ============================================================
-   HABLA PANA! 🇻🇪 — CUSTOM CSS OVERRIDES
-   Expert Senior Full-Stack - Estética VIP
+   HABLA PANA! 🇻🇪 — CUSTOM CSS v5.0
+   Social & Cultural Revolution
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&display=swap');
+/* Importar Fuentes Adicionales */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&display=swap');
 
 :root {
     --ven-yellow: #ffcc00;
     --ven-blue:   #0033a0;
     --ven-red:    #ce1126;
     --bg-dark:    #050810;
+    --napkin-bg:  #fdfdfd;
 }
 
-body {
-    background-color: var(--bg-dark);
-    font-family: 'Inter', sans-serif;
-    color: #fff;
-    overflow: hidden;
-}
-
+body { background: var(--bg-dark); font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; }
 .font-bebas { font-family: 'Bebas Neue', cursive; }
+.font-napkin { font-family: 'Dancing Script', cursive; font-size: 1.1rem; }
 
-/* Degradado Estilo Noche en el Ávila */
-.bg-avila {
-    background: linear-gradient(180deg, #050810 0%, #0c1527 50%, #1a2a47 100%);
+/* Noche en el Ávila Gradient */
+.bg-avila { background: linear-gradient(180deg, #050810 0%, #0c1527 50%, #1a2a47 100%); }
+
+/* 📜 CHAT DE SERVILLETA */
+#chat-napkin {
+    background: var(--napkin-bg);
+    background-image: 
+        radial-gradient(#e5e5f7 0.5px, transparent 0.5px), 
+        radial-gradient(#e5e5f7 0.5px, var(--napkin-bg) 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+    box-shadow: 10px 0 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.05);
 }
 
-/* Efecto de Resplandor Neón Venezolano */
-.glow-ven {
-    box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
-}
+/* Scrollbar para Servilleta */
+#chat-scroller::-webkit-scrollbar { width: 3px; }
+#chat-scroller::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
 
-.glow-red {
-    box-shadow: 0 0 15px rgba(206, 17, 38, 0.3);
+/* 🎮 TRIVIA UI */
+.trivia-option-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 12px; border-radius: 15px;
+    text-align: center; font-size: 13px; font-weight: 700;
+    transition: all 0.2s; cursor: pointer;
 }
+.trivia-option-btn:active { transform: scale(0.98); }
+.trivia-option-btn.correct { background: #10b981; color: #000; border-color: #10b981; }
+.trivia-option-btn.wrong { background: #ef4444; color: #fff; border-color: #ef4444; }
 
-/* Video Containers */
-.video-fit {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+/* 🎥 VIDEOS & OVERLAYS */
+.video-fit { width: 100%; height: 100%; object-fit: cover; }
 
-/* Animación de Búsqueda */
-@keyframes pulse-search {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 0.8; }
-}
-.animate-pulse-search {
-    animation: pulse-search 2s infinite;
-}
+#searching-overlay { backdrop-filter: blur(20px); }
 
-/* Picture in Picture (Local Video) */
-#local-video-container {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+@keyframes pulse-search { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+.animate-pulse-search { animation: pulse-search 2s infinite; }
 
-/* Hide scrollbars but keep functionality */
+/* HUD CONTROLS */
+.btn-active:active { transform: scale(0.9); }
+.btn-active { transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+/* MATCH ANIMATIONS */
+@keyframes heart-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+.match-pop { animation: heart-pop 0.6s ease-out; }
+
+/* UTILS */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Tailwind Button Active Effect */
-.btn-active:active { transform: scale(0.95); }
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    #chat-napkin { width: 42px; padding: 10px 5px; } /* Solo el tirador visible */
+    #chat-napkin:hover { width: 220px; padding: 20px; }
+    #chat-napkin h4, #chat-napkin #chat-scroller, #chat-napkin div { opacity: 0; transition: 0.3s; pointer-events: none; }
+    #chat-napkin:hover h4, #chat-napkin:hover #chat-scroller, #chat-napkin:hover div { opacity: 1; pointer-events: auto; }
+}
