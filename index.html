@@ -80,7 +80,7 @@
         
         <!-- Video Remoto (El Pana) -->
         <div id="remote-video-container" class="absolute inset-0 bg-black flex items-center justify-center">
-            <video id="remote-video" class="video-fit transition-transform duration-700"></video>
+            <video id="remote-video" class="video-fit transition-transform duration-700" autoplay playsinline></video>
             
             <!-- Overlay de Búsqueda y Trivia -->
              <div id="searching-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 transition-opacity p-6">
@@ -123,7 +123,9 @@
                 <p>¡Epa Pana!</p>
             </div>
             <div class="absolute bottom-4 left-4 right-4 flex gap-1">
-               <input type="text" id="chat-input" placeholder="..." class="w-full text-xs border-b border-gray-400 bg-transparent focus:outline-none p-1 font-napkin">
+               <input type="text" id="chat-input" placeholder="..." 
+                onkeypress="if(event.key==='Enter') HanaPana.sendSignal('chat', {text: this.value})"
+                class="w-full text-xs border-b border-gray-400 bg-transparent focus:outline-none p-1 font-napkin">
                <button onclick="HanaPana.sendSignal('chat', {text: document.getElementById('chat-input').value})" class="text-xl">🚀</button>
             </div>
             <!-- Tirador del menú -->

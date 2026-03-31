@@ -87,12 +87,12 @@ const HanaPana = {
                 btn.innerText = opt;
                 btn.onclick = () => {
                     if (opt === qData.a) {
-                        btn.className += " correct";
+                        btn.classList.add("correct");
                         this.addPoints(5);
-                        setTimeout(() => this.shotTrivia(), 1000);
+                        setTimeout(() => this.shotTrivia(), 800);
                     } else {
-                        btn.className += " wrong";
-                        setTimeout(() => this.shotTrivia(), 1000);
+                        btn.classList.add("wrong");
+                        setTimeout(() => this.shotTrivia(), 800);
                     }
                 };
                 optBox.appendChild(btn);
@@ -100,25 +100,38 @@ const HanaPana = {
         }
     },
 
-    // --- MATCH & SEÑALES (CORAZÓN/PELOTA) ---
-    async sendMatchSignal(type) {
+    // --- MATCH & SEÑALES (CORAZÓN/PELOTA/CHAT) ---
+    async sendSignal(type, data) {
         if (!this.partnerData) return;
         const signalRef = ref(db, `signals/${this.partnerData.id}/${this.myPeerId}`);
-        await set(signalRef, { type: type, timestamp: Date.now() });
-        this.appendMsg("SISTEMA", `Le enviaste un ${type === 'heart' ? '❤️' : '⚽'}...`, 'sys');
+        await set(signalRef, { type, ...data, nick: this.nick, timestamp: Date.now() });
+        
+        if (type === 'chat') {
+            this.appendMsg("TÚ", data.text, 'me');
+            document.getElementById('chat-input').value = '';
+        } else {
+            this.appendMsg("SISTEMA", `Le enviaste un ${type === 'heart' ? '❤️' : '⚽'}...`, 'sys');
+        }
+    },
+
+    async sendMatchSignal(type) {
+        await this.sendSignal(type, {});
     },
 
     listenToSignals() {
         const signalRef = ref(db, `signals/${this.myPeerId}`);
         onValue(signalRef, (snapshot) => {
-            const signals = snapshot.val();
-            if (signals) {
-                const senderId = Object.keys(signals)[0];
-                const data = signals[senderId];
-                if (data.type === 'heart' || data.type === 'ball') {
-                    this.showMatchOverlay(data.type);
-                }
-                remove(signalRef); // Limpiar señal
+            const allSignals = snapshot.val();
+            if (allSignals) {
+                Object.keys(allSignals).forEach(senderId => {
+                    const data = allSignals[senderId];
+                    if (data.type === 'heart' || data.type === 'ball') {
+                        this.showMatchOverlay(data.type);
+                    } else if (data.type === 'chat') {
+                        this.appendMsg(data.nick, data.text, 'hero');
+                    }
+                });
+                remove(signalRef); // Limpiar señales leídas
             }
         });
     },
