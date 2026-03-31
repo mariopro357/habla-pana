@@ -1,6 +1,6 @@
 /* ============================================================
-   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v7.0)
-   The Handshake Edition - No More Signal Loss
+   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v8.0 PREMIUM)
+   Unified Game Center & Split Layout Engine
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -20,8 +20,9 @@ const TRIVIA_SET = [
     { q: "¿En qué estado está el Salto Ángel?", a: "Bolívar", o: ["Amazonas", "Bolívar", "Lara"] },
     { q: "¿Qué define a la Reina Pepiada?", a: "Aguacate y Pollo", o: ["Mechada", "Aguacate y Pollo", "Caraotas"] },
     { q: "¿Ave nacional?", a: "Turpial", o: ["Cardenal", "Turpial", "Zamuro"] },
-    { q: "¿Pico más alto?", a: "Pico Bolívar", o: ["Pico Espejo", "Pico Bolívar", "Naiguatá"] },
-    { q: "¿Ciudad de los Caballeros?", a: "Mérida", o: ["Coro", "Mérida", "Valencia"] }
+    { q: "¿Pico más alto?", a: "Pico Bolívar", o: ["Pico Bolívar", "Naiguatá", "Humboldt"] },
+    { q: "¿Ciudad de El Resuelve?", a: "Caracas", o: ["Valencia", "Caracas", "Maracaibo"] },
+    { q: "¿Significado de 'Pana'?", a: "Amigo", o: ["Amigo", "Pan", "Ropa"] }
 ];
 
 const HanaPana = {
@@ -30,31 +31,27 @@ const HanaPana = {
     points: 100, nick: '', state: '', ig: '', myPeerId: '', 
     partnerData: null, isMicOn: true, isCamOn: true,
     processedSignalIds: new Set(),
-    sessionRef: null,
 
     // --- INICIALIZACIÓN ---
     async init() {
         const nickInput = document.getElementById('nick-input');
         const igInput = document.getElementById('ig-input');
-        const stateSelect = document.getElementById('state-select');
-        const captchaInput = document.getElementById('captcha-input');
-
-        if (nickInput.value.trim().split(' ').length < 2) return alert("❌ Pon nombre y apellido real.");
-        if (!igInput.value.includes('@')) return alert("❌ Pon tu @ de Instagram real.");
-        if (captchaInput.value.toLowerCase().trim() !== "diablo") return alert("❌ Refrán errado.");
+        
+        if (nickInput.value.trim().split(' ').length < 2) return alert("❌ Nombre y apellido real, pana.");
+        if (!igInput.value.includes('@')) return alert("❌ Danos tu Instagram real (@).");
 
         this.nick = nickInput.value.trim();
         this.ig = igInput.value.trim();
-        this.state = stateSelect.value || "Venezuela";
+        this.state = document.getElementById('state-select').value || "Venezuela";
 
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 480, height: 640 }, 
+                video: { width: 640, height: 480 }, 
                 audio: true 
             });
             document.getElementById('local-video').srcObject = this.localStream;
             
-            this.setupChatEvents();
+            this.setupDualChat();
 
             document.getElementById('screen-auth').style.opacity = '0';
             setTimeout(() => {
@@ -62,82 +59,96 @@ const HanaPana = {
                 document.getElementById('screen-chat').classList.remove('hidden');
                 this.setupPeer();
             }, 500);
-        } catch (e) { alert("❌ Activa la cámara para entrar."); }
+        } catch (e) { alert("❌ Habilita la cámara."); }
     },
 
-    // --- CHAT TÁCTIL & EVENTOS ---
-    setupChatEvents() {
-        const input = document.getElementById('chat-input');
-        const btn = document.getElementById('btn-chat-send');
-        
-        const send = () => {
-            const txt = input.value.trim();
-            if (txt) { this.sendSignal('chat', { text: txt }); input.value = ''; }
-        };
+    // --- CHAT DUAL (SIDEBAR / OVERLAY) ---
+    setupDualChat() {
+        const ids = ['mobile', 'side'];
+        ids.forEach(prefix => {
+            const input = document.getElementById(`${prefix}-chat-input`);
+            const btn = document.getElementById(`btn-${prefix}-chat-send`);
+            if (!input || !btn) return;
 
-        btn.onclick = (e) => { e.preventDefault(); send(); };
-        input.onkeypress = (e) => { if (e.key === 'Enter') send(); };
+            const send = () => {
+                const txt = input.value.trim();
+                if (txt) { this.sendSignal('chat', { text: txt }); input.value = ''; }
+            };
+            btn.onclick = send;
+            input.onkeypress = (e) => { if (e.key === 'Enter') send(); };
+        });
     },
 
     toggleChat() {
-        const napkin = document.getElementById('chat-napkin');
-        napkin.classList.toggle('chat-open');
+        const isMobile = window.innerWidth < 1024;
+        if (isMobile) {
+            const overlay = document.getElementById('mobile-chat-overlay');
+            overlay.classList.toggle('hidden');
+        } else {
+            // En desktop, simplemente enfocamos el input de la barra lateral
+            document.getElementById('side-chat-input').focus();
+        }
     },
 
-    // --- TRIVIA MOTOR ---
+    // --- GAME CENTER (TRIVIA v8.0) ---
     shotTrivia() {
-        const ov = document.getElementById('searching-overlay');
-        if (ov.classList.contains('hidden')) return;
+        const isSearching = !document.getElementById('searching-overlay').classList.contains('hidden');
         
+        // Determinar qué caja de trivia usar (Sidebar o Overlay)
+        const suffix = isSearching ? 'q' : 'side-trivia-q'; 
+        const optSuffix = isSearching ? 'options' : 'side-trivia-options';
+        
+        const qElem = document.getElementById(isSearching ? 'trivia-q' : 'side-trivia-q');
+        const optElem = document.getElementById(isSearching ? 'trivia-options' : 'side-trivia-options');
+        
+        if (!qElem) return; // Si no estamos en modo búsqueda y no hay sidebar (móvil)
+
         const q = TRIVIA_SET[Math.floor(Math.random() * TRIVIA_SET.length)];
-        document.getElementById('trivia-q').innerText = q.q;
-        const opts = document.getElementById('trivia-options');
-        opts.innerHTML = '';
+        qElem.innerText = q.q;
+        optElem.innerHTML = '';
         
         q.o.forEach(o => {
             const b = document.createElement('button');
             b.className = "trivia-option-btn";
             b.innerText = o;
             b.onclick = () => {
-                if (o === q.a) { b.classList.add("correct"); this.points += 5; setTimeout(() => this.shotTrivia(), 800); }
-                else { b.classList.add("wrong"); setTimeout(() => this.shotTrivia(), 800); }
-                this.updateUI();
+                if (o === q.a) { 
+                    b.classList.add("correct"); 
+                    this.points += 5; 
+                    this.updatePointsUI();
+                    setTimeout(() => this.shotTrivia(), 1000); 
+                } else { 
+                    b.classList.add("wrong"); 
+                    setTimeout(() => this.shotTrivia(), 1000); 
+                }
             };
-            opts.appendChild(b);
+            optElem.appendChild(b);
         });
     },
 
-    // --- EL HANDSHAKE (LA CLAVE v7.0) 🤝 ---
-    async startHandshake(partnerId) {
-        // Generar ID de sesión único para ambos
-        const sId = [this.myPeerId, partnerId].sort().join('_');
-        const sPath = ref(db, `active_sessions/${sId}/${this.myPeerId}`);
+    // --- HANDSHAKE v7.0 & SIGNALS ---
+    async startHandshake(remoteId) {
+        const sId = [this.myPeerId, remoteId].sort().join('_');
+        const myPath = ref(db, `v8_sessions/${sId}/${this.myPeerId}`);
+        await set(myPath, { id: this.myPeerId, nick: this.nick, ig: this.ig, state: this.state });
         
-        // Enviamos nuestra identidad al nodo de sesión
-        await set(sPath, { id: this.myPeerId, nick: this.nick, ig: this.ig, state: this.state });
-        
-        // Escuchamos la identidad del otro en el mismo nodo
-        const otherPath = ref(db, `active_sessions/${sId}/${partnerId}`);
-        onValue(otherPath, (snap) => {
+        onValue(ref(db, `v8_sessions/${sId}/${remoteId}`), (snap) => {
             const data = snap.val();
             if (data && !this.partnerData) {
                 this.partnerData = data;
                 document.getElementById('partner-nick').innerText = data.nick;
                 document.getElementById('partner-state').innerText = data.state.toUpperCase();
-                this.listenToSignals(); // Ahora que tenemos partnerID, escuchamos señales
-                this.appendMsg("SISTEMA", `¡Conectado con ${data.nick}!`, 'sys');
+                this.listenToSignals();
+                this.shotTrivia(); // Lanzar trivia en el Sidebar al conectar (si es laptop)
             }
         });
-
-        // Limpiar sesión al desconectar
-        onDisconnect(sPath).remove();
+        onDisconnect(myPath).remove();
     },
 
-    // --- SEÑALES & MATCH MUTUO ---
     async sendSignal(type, data) {
         if (!this.partnerData) return;
-        const msgId = Date.now().toString() + Math.random().toString(16).substr(2,4);
-        const sRef = ref(db, `signals/${this.partnerData.id}/${msgId}`);
+        const msgId = `m-${Date.now()}-${Math.random().toString(16).substr(2,4)}`;
+        const sRef = ref(db, `v8_signals/${this.partnerData.id}/${msgId}`);
         await set(sRef, { type, ...data, nick: this.nick, timestamp: Date.now() });
         if (type === 'chat') this.appendMsg("TÚ", data.text);
     },
@@ -145,16 +156,13 @@ const HanaPana = {
     async sendMatchSignal(v) {
         if (!this.partnerData) return;
         const sId = [this.myPeerId, this.partnerData.id].sort().join('_');
-        await set(ref(db, `matches/${sId}/${this.myPeerId}`), v);
+        await set(ref(db, `v8_matches/${sId}/${this.myPeerId}`), v);
         this.sendSignal('interest', { v });
         this.appendMsg("SISTEMA", `Enviando ${v === 'heart' ? '❤️' : '⚽'}...`);
     },
 
     listenToSignals() {
-        if (!this.partnerData) return;
-        
-        // Señales directas
-        const sigRef = ref(db, `signals/${this.myPeerId}`);
+        const sigRef = ref(db, `v8_signals/${this.myPeerId}`);
         off(sigRef);
         onValue(sigRef, (snap) => {
             const msgs = snap.val();
@@ -171,9 +179,7 @@ const HanaPana = {
         });
 
         // Match Mutuo
-        const sId = [this.myPeerId, this.partnerData.id].sort().join('_');
-        const mRef = ref(db, `matches/${sId}`);
-        off(mRef);
+        const mRef = ref(db, `v8_matches/${[this.myPeerId, this.partnerData.id].sort().join('_')}`);
         onValue(mRef, (snap) => {
             const v = snap.val();
             if (v && Object.keys(v).length === 2) {
@@ -194,17 +200,15 @@ const HanaPana = {
             ov.classList.add('hidden');
             document.getElementById('ig-val').innerText = this.partnerData.ig;
             pr.classList.remove('hidden');
-        }, 2500);
+        }, 2800);
     },
 
-    // --- MOTOR PEERJS v7.0 ---
+    // --- PEERJS & MOTOR ---
     setupPeer() {
-        const id = `hp-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}`;
-        this.myPeerId = id;
-        this.peer = new Peer(id);
+        this.myPeerId = `hp-${Math.floor(Math.random()*99999).toString().padStart(5,'0')}`;
+        this.peer = new Peer(this.myPeerId);
         this.peer.on('open', () => this.next());
         this.peer.on('call', (call) => {
-            if (this.currentCall) this.currentCall.close();
             call.answer(this.localStream);
             this.handleCall(call, false);
         });
@@ -215,9 +219,9 @@ const HanaPana = {
         this.partnerData = null;
         this.processedSignalIds.clear();
         this.showSearching(true);
-        this.shotTrivia();
-        
-        const lobby = ref(db, 'waiting_v7');
+        this.shotTrivia(); 
+
+        const lobby = ref(db, 'waiting_v8');
         const snap = await get(lobby);
         const waiters = snap.val();
 
@@ -227,14 +231,14 @@ const HanaPana = {
                 const tid = others[0];
                 const call = this.peer.call(tid, this.localStream);
                 if (call) {
-                    await remove(ref(db, `waiting_v7/${tid}`));
+                    await remove(ref(db, `waiting_v8/${tid}`));
                     this.handleCall(call, tid);
                     return;
                 }
             }
         }
 
-        const myRef = ref(db, `waiting_v7/${this.myPeerId}`);
+        const myRef = ref(db, `waiting_v8/${this.myPeerId}`);
         await set(myRef, { id: this.myPeerId });
         onDisconnect(myRef).remove();
     },
@@ -243,20 +247,17 @@ const HanaPana = {
         this.currentCall = call;
         this.showSearching(false);
         document.getElementById('match-prompt').classList.add('hidden');
-        
-        // IMPORTANTE: Handshake
-        // Si yo llamé, tid es el ID. Si me llamaron, PeerJS lo tiene en call.peer
-        const remotePeerId = tid || call.peer;
-        this.startHandshake(remotePeerId);
+        this.startHandshake(tid || call.peer);
 
         call.on('stream', (s) => {
-            document.getElementById('remote-video').srcObject = s;
-            document.getElementById('partner-nick').innerText = "CONECTANDO...";
+            const video = document.getElementById('remote-video');
+            video.srcObject = s;
+            video.onloadedmetadata = () => video.play();
         });
         call.on('close', () => this.next());
     },
 
-    // --- CONTROLES & UI ---
+    // --- UI HELPERS ---
     toggleMic() {
         this.isMicOn = !this.isMicOn;
         this.localStream.getAudioTracks()[0].enabled = this.isMicOn;
@@ -268,19 +269,19 @@ const HanaPana = {
         document.getElementById('btn-cam-toggle').classList.toggle('btn-off', !this.isCamOn);
     },
     appendMsg(n, t) {
-        const sc = document.getElementById('chat-scroller');
-        const d = document.createElement('div');
-        d.innerHTML = `<b class="text-red-600 text-xs">${n}:</b> <span class="font-napkin">${t}</span>`;
-        sc.appendChild(d);
-        sc.scrollTop = sc.scrollHeight;
+        const scrollers = ['mobile-chat-scroller', 'side-chat-scroller'];
+        scrollers.forEach(id => {
+            const sc = document.getElementById(id);
+            if (!sc) return;
+            const d = document.createElement('p');
+            d.innerHTML = `<b class="${n==='TÚ'?'text-blue-500':'text-red-600'}">${n}:</b> <span>${t}</span>`;
+            sc.appendChild(d);
+            sc.scrollTop = sc.scrollHeight;
+        });
     },
-    updateUI() { document.getElementById('pana-points').innerText = `${this.points} PT`; },
+    updatePointsUI() { document.getElementById('pana-points').innerText = this.points; },
     showSearching(s) { document.getElementById('searching-overlay').classList.toggle('hidden', !s); },
-    report() { if(confirm("¿Reportar?")) this.next(); }
+    report() { if(confirm("¿Reportar intenso?")) this.next(); }
 };
 
 window.HanaPana = HanaPana;
-document.addEventListener('DOMContentLoaded', () => {
-    // Evitar que el zoom de iOS moleste
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
-});
