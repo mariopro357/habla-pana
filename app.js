@@ -1,10 +1,10 @@
 /* ============================================================
-   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v5.5)
-   Estabilidad & Match Mutual - Firebase Hybrid
+   HABLA PANA! 🇻🇪 — MOTOR SENIOR FULL-STACK (v6.0 PRO)
+   Anti-Eco Signal System & Mutual Match Engine
    ============================================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, update, onValue, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, get, update, onValue, onDisconnect, remove, off } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCJwudpTsjQbQ7g72-3L4O4W8XKE8ojZNM",
@@ -18,10 +18,11 @@ const db = getDatabase(app);
 
 const TRIVIA_SET = [
     { q: "¿En qué estado está el Salto Ángel?", a: "Bolívar", o: ["Amazonas", "Bolívar", "Zulia", "Lara"] },
-    { q: "¿Qué define a la Reina Pepiada?", a: "Aguacate y Pollo", o: ["Mechada", "Aguacate y Pollo", "Caraotas", "Pernil"] },
+    { q: "¿Qué ingrediente define a la Reina Pepiada?", a: "Aguacate y Pollo", o: ["Mechada", "Aguacate y Pollo", "Caraotas", "Pernil"] },
     { q: "¿Ave nacional de Venezuela?", a: "Turpial", o: ["Cardenal", "Turpial", "Zamuro", "Coleo"] },
     { q: "¿Pico más alto del país?", a: "Pico Bolívar", o: ["Pico Espejo", "Naiguatá", "Pico Bolívar", "Águila"] },
-    { q: "¿Ciudad de los Caballeros?", a: "Mérida", o: ["Trujillo", "Mérida", "Valencia", "Coro"] }
+    { q: "¿Ciudad de los Caballeros?", a: "Mérida", o: ["Trujillo", "Mérida", "Valencia", "Coro"] },
+    { q: "¿Cómo se llama el dulce de leche de Coro?", a: "Dulce de Leche", o: ["Manjar", "Dulce de Leche", "Arequipe", "Arroz con Leche"] }
 ];
 
 const HanaPana = {
@@ -29,7 +30,7 @@ const HanaPana = {
     peer: null, currentCall: null, localStream: null, 
     points: 100, nick: '', state: '', ig: '', myPeerId: '', 
     partnerData: null, isMicOn: true, isCamOn: true,
-    currentMatchStatus: { heart: false, ball: false },
+    processedSignalIds: new Set(), // Para evitar duplicidad de mensajes (Eco Fix)
 
     // --- INICIALIZACIÓN ---
     async init() {
@@ -41,12 +42,11 @@ const HanaPana = {
         const nameParts = nickInput.value.trim().split(' ');
         if (nameParts.length < 2) return alert("❌ ¡EPALE! Pon nombre y apellido real.");
         if (!igInput.value.includes('@')) return alert("❌ Danos tu Instagram real (con @).");
-        if (!stateSelect.value) return alert("❌ Selecciona tu estado.");
         if (captchaInput.value.toLowerCase().trim() !== "diablo") return alert("❌ Refrán errado.");
 
         this.nick = nickInput.value.trim();
         this.ig = igInput.value.trim();
-        this.state = stateSelect.value;
+        this.state = stateSelect.value || "Venezuela";
 
         try {
             this.localStream = await navigator.mediaDevices.getUserMedia({ 
@@ -55,7 +55,6 @@ const HanaPana = {
             });
             document.getElementById('local-video').srcObject = this.localStream;
             
-            // Configurar Chat para Móvil
             this.setupChatMobile();
 
             document.getElementById('screen-auth').style.opacity = '0';
@@ -114,54 +113,53 @@ const HanaPana = {
         });
     },
 
-    // --- MATCH MUTUO & SEÑALES ---
+    // --- MATCH MUTUO & SEÑALES (FIX ECO) ---
     async sendMatchSignal(type) {
         if (!this.partnerData) return;
-        
-        // 1. Notificar al otro (Para que sepa que le diste match)
         this.sendSignal('interest', { type });
-
-        // 2. Registrar el voto en el nodo de sesión compartida
-        // Creamos un ID único de sesión basado en los dos PeerIDs ordenados
         const sessionPath = [this.myPeerId, this.partnerData.id].sort().join('_');
-        const matchRef = ref(db, `session_matches/${sessionPath}/${this.myPeerId}`);
-        await set(matchRef, type);
-        
-        this.appendMsg("SISTEMA", `Presionaste ${type === 'heart' ? '❤️' : '⚽'}...`, 'sys');
+        await set(ref(db, `session_matches/${sessionPath}/${this.myPeerId}`), type);
+        this.appendMsg("SISTEMA", `Enviando ${type === 'heart' ? '❤️' : '⚽'}...`, 'sys');
     },
 
     listenToSignals() {
-        // Escuchador de señales directas (Chat e Interés)
         const signalRef = ref(db, `signals/${this.myPeerId}`);
+        
+        // Limpiamos listener previo para evitar multiplicidad (Eco Fix)
+        off(signalRef);
+        
         onValue(signalRef, (snap) => {
             const signals = snap.val();
             if (signals) {
                 Object.keys(signals).forEach(sid => {
+                    // Si ya procesamos este ID único de señal, lo ignoramos
+                    if (this.processedSignalIds.has(sid)) return;
+                    this.processedSignalIds.add(sid);
+
                     const data = signals[sid];
                     if (data.type === 'interest') {
                         const icon = data.type === 'heart' ? '❤️' : '⚽';
-                        this.appendMsg("SISTEMA", `¡A ${data.nick} le gustas! Dale ${icon} tú también.`, 'sys');
+                        this.appendMsg("SISTEMA", `¡A ${data.nick} le gustas! Dale ${icon}`, 'sys');
                     } else if (data.type === 'chat') {
                         this.appendMsg(data.nick, data.text, 'hero');
                     }
                 });
-                remove(signalRef);
+                remove(signalRef).catch(() => {}); // Limpiar de DB
             }
         });
 
-        // Escuchador de MATCH MUTUO
+        // Mutuo Match Listener
         if (this.partnerData) {
-            const sessionPath = [this.myPeerId, this.partnerData.id].sort().join('_');
-            const sessionRef = ref(db, `session_matches/${sessionPath}`);
-            onValue(sessionRef, (snap) => {
+            const sPath = [this.myPeerId, this.partnerData.id].sort().join('_');
+            const sRef = ref(db, `session_matches/${sPath}`);
+            off(sRef);
+            onValue(sRef, (snap) => {
                 const votes = snap.val();
                 if (votes && Object.keys(votes).length === 2) {
-                    // Si ambos votaron lo mismo
-                    const v1 = Object.values(votes)[0];
-                    const v2 = Object.values(votes)[1];
-                    if (v1 === v2) {
-                        this.triggerMutualMatch(v1);
-                        remove(sessionRef); // Limpiar sesión tras match
+                    const vals = Object.values(votes);
+                    if (vals[0] === vals[1]) {
+                        this.triggerMutualMatch(vals[0]);
+                        remove(sRef).catch(() => {});
                     }
                 }
             });
@@ -171,32 +169,32 @@ const HanaPana = {
     triggerMutualMatch(type) {
         const overlay = document.getElementById(`mutual-match-${type}`);
         const prompt = document.getElementById('match-prompt');
+        const igVal = document.getElementById('ig-val');
         
         overlay.classList.remove('hidden');
         setTimeout(() => {
             overlay.classList.add('hidden');
-            // Revelar IG
-            prompt.innerText = `¡MATCH! IG de ${this.partnerData.nick}: ${this.partnerData.ig}`;
+            igVal.innerText = this.partnerData.ig;
             prompt.classList.remove('hidden');
-            this.appendMsg("LOGRADO", "¡CONEXIÓN ESTABLECIDA! Tienen su IG.", 'sys');
-        }, 2500);
+            this.appendMsg("LOGRADO", "¡MATCH REAL! IG Revelado.", 'sys');
+        }, 2800);
     },
 
     async sendSignal(type, data) {
         if (!this.partnerData) return;
-        const sRef = ref(db, `signals/${this.partnerData.id}/${this.myPeerId}`);
+        const msgId = Date.now().toString() + Math.random().toString(16).substr(2, 4);
+        const sRef = ref(db, `signals/${this.partnerData.id}/${msgId}`);
         await set(sRef, { type, ...data, nick: this.nick, timestamp: Date.now() });
         if (type === 'chat') this.appendMsg("TÚ", data.text, 'me');
     },
 
-    // --- PEERJS MOTOR v5.5 ---
+    // --- PEERJS MOTOR PRO ---
     setupPeer() {
         const rid = Math.floor(Math.random() * 99999).toString().padStart(5, '0');
         this.myPeerId = `hp-${rid}`;
         this.peer = new Peer(this.myPeerId);
         
         this.peer.on('open', () => { 
-            this.listenToSignals();
             this.next(); 
         });
         this.peer.on('call', (call) => {
@@ -207,14 +205,12 @@ const HanaPana = {
     },
 
     async next() {
-        // Limpiar señales anteriores
-        if (this.myPeerId) remove(ref(db, `signals/${this.myPeerId}`));
-        
         if (this.currentCall) this.currentCall.close();
+        this.processedSignalIds.clear(); // Reset eco fix en cada pana nuevo
         this.showSearching(true);
         this.shotTrivia();
         
-        const lobbyRef = ref(db, 'waiting_v5_5');
+        const lobbyRef = ref(db, 'waiting_v6');
         const snap = await get(lobbyRef);
         const waiters = snap.val();
 
@@ -225,14 +221,14 @@ const HanaPana = {
                 this.partnerData = waiters[targetId];
                 const call = this.peer.call(targetId, this.localStream);
                 if (call) {
-                    await remove(ref(db, `waiting_v5_5/${targetId}`));
+                    await remove(ref(db, `waiting_v6/${targetId}`));
                     this.handleCall(call);
                     return;
                 }
             }
         }
 
-        const myLobbyRef = ref(db, `waiting_v5_5/${this.myPeerId}`);
+        const myLobbyRef = ref(db, `waiting_v6/${this.myPeerId}`);
         await set(myLobbyRef, { id: this.myPeerId, nick: this.nick, state: this.state, ig: this.ig });
         onDisconnect(myLobbyRef).remove();
     },
@@ -241,17 +237,17 @@ const HanaPana = {
         this.currentCall = call;
         this.showSearching(false);
         document.getElementById('match-prompt').classList.add('hidden');
-        this.listenToSignals(); // Re-iniciar escucha de sesión compartida
+        this.listenToSignals();
         
         call.on('stream', (st) => {
             document.getElementById('remote-video').srcObject = st;
             document.getElementById('partner-nick').innerText = this.partnerData ? this.partnerData.nick : "PANA NUEVO";
-            document.getElementById('partner-state').innerText = this.partnerData ? this.partnerData.state : "---";
+            document.getElementById('partner-state').innerText = (this.partnerData ? this.partnerData.state : "---").toUpperCase();
         });
         call.on('close', () => { this.next(); });
     },
 
-    // --- CONTROLES MUTE v5.5 ---
+    // --- CONTROLES MUTE ---
     toggleMic() {
         this.isMicOn = !this.isMicOn;
         this.localStream.getAudioTracks()[0].enabled = this.isMicOn;
@@ -268,21 +264,21 @@ const HanaPana = {
         btn.classList.toggle('btn-off', !this.isCamOn);
     },
 
-    // --- UTILS ---
     appendMsg(nick, text, type) {
         const box = document.getElementById('chat-scroller');
         const d = document.createElement('div');
-        d.className = "border-b border-gray-200 py-1";
-        d.innerHTML = `<span class="font-bold text-red-600 text-xs">${nick}:</span> <span class="font-napkin">${text}</span>`;
+        d.className = "border-b border-gray-100 py-2";
+        d.innerHTML = `<span class="font-bold text-red-600 text-[14px]">${nick}:</span> <span class="font-napkin text-[16px]">${text}</span>`;
         box.appendChild(d);
         box.scrollTop = box.scrollHeight;
     },
 
-    updatePointsUI() { document.getElementById('pana-points').innerText = this.points; },
+    updatePointsUI() { 
+        document.getElementById('pana-points').innerText = this.points + " PTS"; 
+    },
     showSearching(s) { 
         document.getElementById('searching-overlay').classList.toggle('hidden', !s);
-    },
-    report() { if(confirm("¿Reportar intenso?")) this.next(); }
+    }
 };
 
 window.HanaPana = HanaPana;
