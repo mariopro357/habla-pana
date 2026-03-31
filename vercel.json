@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "habla-pana-web",
+  "builds": [
+    {
+      "src": "**/*",
+      "use": "@vercel/static"
+    }
+  ]
+}

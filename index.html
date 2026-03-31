@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050810">
+    <title>¡Habla, Pana! 🇻🇪 — OmeTV Criollo</title>
+    
+    <!-- Librerías de Terceros (CDN) -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="https://img.icons8.com/color/192/venezuela-flag.png">
+    
+    <!-- MQTT para Signaling Descentralizado -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+</head>
+<body>
+
+    <!-- 1. PANTALLA: ONBOARDING -->
+    <div id="screen-setup" class="screen hero-view active">
+        <div class="logo-box">
+            <h1 class="logo-title">¡HABLA, PANA!</h1>
+            <p class="logo-sub">CONECTANDO CON EL BARRIO</p>
+        </div>
+
+        <div class="input-card">
+            <div class="field-group">
+                <label class="label">¿Cómo te dicen?</label>
+                <input type="text" id="nick-input" placeholder="Ej: El Chamo 10" maxlength="15">
+            </div>
+
+            <div class="field-group">
+                <label class="label">¿De qué estado eres?</label>
+                <select id="state-input">
+                    <option value="" disabled selected>Selecciona tu Estado</option>
+                    <option value="Amazonas">Amazonas</option>
+                    <option value="Anzoátegui">Anzoátegui</option>
+                    <option value="Apure">Apure</option>
+                    <option value="Aragua">Aragua</option>
+                    <option value="Barinas">Barinas</option>
+                    <option value="Bolívar">Bolívar</option>
+                    <option value="Carabobo">Carabobo</option>
+                    <option value="Cojedes">Cojedes</option>
+                    <option value="Delta Amacuro">Delta Amacuro</option>
+                    <option value="Distrito Capital">Distrito Capital</option>
+                    <option value="Falcón">Falcón</option>
+                    <option value="Guárico">Guárico</option>
+                    <option value="Lara">Lara</option>
+                    <option value="Mérida">Mérida</option>
+                    <option value="Miranda">Miranda</option>
+                    <option value="Monagas">Monagas</option>
+                    <option value="Nueva Esparta">Nueva Esparta</option>
+                    <option value="Portuguesa">Portuguesa</option>
+                    <option value="Sucre">Sucre</option>
+                    <option value="Táchira">Táchira</option>
+                    <option value="Trujillo">Trujillo</option>
+                    <option value="Vargas">Vargas (La Guaira)</option>
+                    <option value="Yaracuy">Yaracuy</option>
+                    <option value="Zulia">Zulia</option>
+                    <option value="Emanao">Exterior ✈️</option>
+                </select>
+            </div>
+
+            <button class="btn-cta" onclick="App.startSetup()">DARLE CON TODO 🚀</button>
+            <p style="font-size: 11px; color: var(--text-dim); margin-top: 20px; letter-spacing: 1px;">Solo para mayores de 18 años.</p>
+        </div>
+    </div>
+
+    <!-- 2. PANTALLA: CAPTCHA -->
+    <div id="screen-captcha" class="screen hero-view">
+        <div class="input-card">
+            <h2 style="font-family: 'Bebas Neue'; font-size: 32px; color: var(--accent); margin-bottom: 10px;">🔐 FILTRO CRIOLLO</h2>
+            <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 30px;">Completa el refrán para demostrar que eres pana:</p>
+            
+            <p id="captcha-phrase" style="font-size: 20px; font-style: italic; color: #fff; margin-bottom: 30px;">
+                "Más sabe el diablo por viejo que por..."
+            </p>
+
+            <div class="field-group">
+                <input type="text" id="captcha-input" placeholder="Tu respuesta..." style="text-align: center; font-size: 18px;">
+            </div>
+
+            <button class="btn-cta" style="background: var(--gold); box-shadow: 0 0 20px rgba(255,215,0,0.2);" onclick="App.validateCaptcha()">HABLAR PAJA 🗣️</button>
+        </div>
+    </div>
+
+    <!-- 3. PANTALLA: HUD (GAME) -->
+    <div id="screen-hud" class="screen hud-grid">
+        <!-- Sección de Videos -->
+        <main class="video-section">
+            <div class="video-box remote">
+                <div id="remote-container" style="width: 100%; height: 100%;">
+                   <p class="placeholder-txt" id="remote-status">BUSCANDO PANA...</p>
+                </div>
+                <!-- Mini Overlay -->
+                <div id="partner-tag" class="overlay-info" style="position:absolute; top:20px; left:20px; display:none;">
+                    <span id="label-nick" style="font-family:'Bebas Neue'; font-size:32px; text-shadow:0 4px 10px #000;">PANA</span>
+                    <br>
+                    <span id="label-state" style="color:var(--accent); font-weight:800; font-size:12px; letter-spacing:2px;">ESTADO</span>
+                </div>
+            </div>
+
+            <div class="video-box local">
+                <div id="local-container" style="width: 100%; height: 100%;">
+                    <p class="placeholder-txt">INICIANDO CÁMARA...</p>
+                </div>
+                <div class="mirror-nick" id="mirror-nick">MI NOMBRE</div>
+                <div class="mirror-loc" id="mirror-loc">UBICACIÓN...</div>
+            </div>
+        </main>
+
+        <!-- Sidebar Side -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="pts-chip">
+                    ⭐ <span id="points-val">100</span>
+                </div>
+                <button onclick="App.fuchi()" style="background:none; border:none; cursor:pointer; font-size:20px;">🤮</button>
+            </header>
+
+            <div class="chat-box" id="chat-scroller">
+                <p class="msg sys">¡Bienvenido al Barrio! 👋</p>
+            </div>
+
+            <div class="chat-footer">
+                <input type="text" id="chat-input" placeholder="Escribe al pana..." onkeypress="if(event.key==='Enter') App.sendChatMsg()">
+                <button class="btn-send" onclick="App.sendChatMsg()">🚀</button>
+            </div>
+
+            <div class="action-footer">
+                <button class="btn-next" onclick="App.next()">SIGUIENTE 🚌</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Script Principal -->
+    <script src="app.js"></script>
+</body>
+</html>

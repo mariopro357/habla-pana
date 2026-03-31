@@ -1,0 +1,21 @@
+{
+  "name": "¡Habla, Pana! 🇻🇪",
+  "short_name": "HablaPana",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#050810",
+  "theme_color": "#FFD700",
+  "description": "Video chat aleatorio para venezolanos. Random video chat for Venezuelans.",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/venezuela-flag.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/venezuela-flag.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
