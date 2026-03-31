@@ -2,34 +2,34 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>¡Habla Pana! 🇻🇪 — OmeTV Criollo (v5.0)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>¡Habla Pana! 🇻🇪 — OmeTV Criollo (v5.5)</title>
     
     <!-- Meta PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#050810">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     
     <!-- Librerías Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     
-    <!-- Google Fonts: Bebas Neue (Títulos), Inter (Web), Dancing Script (Servilleta) -->
+    <!-- Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&family=Dancing+Script:wght@700&display=swap">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-avila text-white select-none">
+<body class="bg-avila text-white select-none overflow-hidden touch-none">
 
     <!-- 📍 PANTALLA 1: EL FILTRO CRIOLLO (AUTH) -->
-    <section id="screen-auth" class="fixed inset-0 flex flex-col items-center justify-center p-6 z-50 transition-opacity duration-500 overflow-y-auto no-scrollbar">
+    <section id="screen-auth" class="fixed inset-0 flex flex-col items-center justify-center p-6 z-50 transition-opacity duration-500 overflow-y-auto no-scrollbar bg-avila">
         <div class="text-center mb-8">
-            <h1 class="font-bebas text-7xl md:text-8xl tracking-tight leading-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-blue-500 to-red-600 drop-shadow-2xl">
+            <h1 class="font-bebas text-7xl md:text-9xl tracking-tight leading-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-blue-500 to-red-600 drop-shadow-2xl animate-pulse">
                 ¡HABLA PANA!
             </h1>
-            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-[0.4em] mt-2">Conectando con el Barrio</p>
+            <p class="text-[10px] text-gray-400 font-black uppercase tracking-[0.6em] mt-2">Conectando con el Barrio</p>
         </div>
 
         <div class="bg-white/5 border border-white/10 backdrop-blur-xl p-6 rounded-[2.5rem] w-full max-w-md shadow-2xl space-y-4">
-            
             <div class="bg-blue-500/10 border border-blue-400/20 p-3 rounded-2xl text-center">
                 <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">⚠️ GENTE SERIA 🔒</p>
                 <p class="text-[11px] text-gray-300">Solo nombres reales (Nombre y Apellido).</p>
@@ -38,33 +38,32 @@
             <div>
                 <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">¿Nombre Real?</label>
                 <input type="text" id="nick-input" placeholder="Ej: Juan Pérez"
-                    class="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-400/50 focus:ring-4 focus:ring-yellow-400/10 transition-all font-bold">
+                    class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-400 font-bold">
             </div>
 
             <div>
                 <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">¿Cuál es tu Instagram?</label>
                 <input type="text" id="ig-input" placeholder="Ej: @chamo_ven"
-                    class="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-400/50 focus:ring-4 focus:ring-blue-400/10 transition-all font-bold">
+                    class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-600 focus:outline-none focus:border-blue-400 font-bold">
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">¿De qué Estado?</label>
-                    <select id="state-select" class="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white text-sm focus:outline-none focus:border-blue-400/50 transition-all font-bold appearance-none">
+                    <select id="state-select" class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white text-sm focus:outline-none focus:border-blue-400 transition-all font-bold appearance-none">
                         <option value="" disabled selected>Selecciona</option>
                         <option value="Caracas">Caracas</option>
                         <option value="Zulia">Zulia</option>
                         <option value="Carabobo">Carabobo</option>
                         <option value="Lara">Lara</option>
                         <option value="Aragua">Aragua</option>
-                        <option value="Táchira">Táchira</option>
                         <option value="Exterior">Exterior</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 ml-2">Refrán</label>
                     <input type="text" id="captcha-input" placeholder="..." style="text-transform: lowercase;"
-                        class="w-full bg-black/60 border border-white/5 rounded-2xl p-4 text-center text-white placeholder-gray-700 focus:outline-none focus:border-yellow-400/40 transition-all font-black text-lg">
+                        class="w-full bg-black/80 border border-white/5 rounded-2xl p-4 text-center text-white placeholder-gray-700 focus:outline-none focus:border-yellow-400 transition-all font-black text-lg">
                 </div>
             </div>
 
@@ -73,9 +72,11 @@
                 DARLE CON TODO 🚀
             </button>
         </div>
+
+        <p class="mt-8 text-[10px] text-gray-600 font-bold uppercase tracking-[0.3em]">Solo para mayores de 18 • Solo Gente Seria 🔒</p>
     </section>
 
-    <!-- 🎥 PANTALLA 2: LA SALA DE VIDEOCHAT (HUD v5.0) -->
+    <!-- 🎥 PANTALLA 2: LA SALA DE VIDEOCHAT (HUD v5.5) -->
     <main id="screen-chat" class="hidden fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden">
         
         <!-- Video Remoto (El Pana) -->
@@ -99,66 +100,75 @@
                 </div>
              </div>
 
+             <!-- ✨ MATCH MUTUO OVERLAYS (CENTRADOS) -->
+             <div id="mutual-match-heart" class="hidden absolute inset-0 flex flex-col items-center justify-center z-[50] pointer-events-none">
+                <div class="text-[150px] animate-match-pop drop-shadow-[0_0_50px_rgba(255,0,0,0.8)]">❤️</div>
+                <h2 class="font-bebas text-6xl text-white tracking-widest mt-4">¡MATCH ROMÁNTICO!</h2>
+             </div>
+             
+             <div id="mutual-match-ball" class="hidden absolute inset-0 flex flex-col items-center justify-center z-[50] pointer-events-none">
+                <div class="text-[150px] animate-match-pop drop-shadow-[0_0_50px_rgba(255,255,255,0.8)]">⚽</div>
+                <h2 class="font-bebas text-6xl text-white tracking-widest mt-4">¡MATCH DE PANAS!</h2>
+             </div>
+
              <!-- Info del Pana y Match Info -->
              <div class="absolute top-8 left-8 z-10">
                  <h2 id="partner-nick" class="font-bebas text-4xl drop-shadow-lg leading-tight uppercase">BUSCANDO...</h2>
                  <p id="partner-state" class="text-blue-500 font-black text-[10px] tracking-[0.4em] uppercase">MANTÉN LA CALMA ⚡</p>
-                 <div id="match-prompt" class="hidden mt-2 bg-yellow-400 p-2 rounded-xl text-black font-black text-[10px] uppercase animate-bounce">
+                 <div id="match-prompt" class="hidden mt-2 bg-yellow-400 p-3 rounded-2xl text-black font-black text-[11px] uppercase animate-bounce shadow-xl">
                     ¡HICISTE MATCH! IG: @...
                  </div>
              </div>
 
              <!-- Badge de PanaPoints -->
              <div class="absolute top-8 right-8 z-10 bg-yellow-400/20 border border-yellow-400/40 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2">
-                <span class="text-yellow-400">⭐</span>
+                <span class="text-yellow-400 animate-pulse">⭐</span>
                 <span id="pana-points" class="font-black text-yellow-400 text-sm">100</span>
              </div>
         </div>
 
         <!-- 📜 CHAT LATERAL (ESTILO SERVILLETA) -->
-        <div id="chat-napkin" class="absolute left-4 top-1/2 -translate-y-1/2 w-48 h-80 bg-white/95 text-black rounded-r-[40px] rounded-bl-[40px] shadow-2xl z-40 p-5 transform transition-transform -translate-x-[90%] hover:translate-x-0 cursor-pointer overflow-hidden border-2 border-dashed border-gray-300">
+        <div id="chat-napkin" class="absolute left-4 top-1/2 -translate-y-1/2 w-52 h-[450px] bg-white/95 text-black rounded-r-[40px] rounded-bl-[40px] shadow-2xl z-40 p-5 transform transition-transform -translate-x-[85%] hover:translate-x-0 cursor-pointer overflow-hidden border-2 border-dashed border-gray-400 flex flex-col">
             <h4 class="font-bebas text-2xl border-b border-gray-300 pb-2 mb-2 text-red-600">MENSAJES ✍️</h4>
-            <div id="chat-scroller" class="h-[70%] overflow-y-auto font-napkin text-sm no-scrollbar space-y-2">
+            <div id="chat-scroller" class="flex-1 overflow-y-auto font-napkin text-base no-scrollbar space-y-2 pb-16">
                 <!-- Mensajes estilo servilleta -->
-                <p>¡Epa Pana!</p>
+                <p>¡Epa Pana! ¿Todo bien?</p>
             </div>
-            <div class="absolute bottom-4 left-4 right-4 flex gap-1">
-               <input type="text" id="chat-input" placeholder="..." 
-                onkeypress="if(event.key==='Enter') HanaPana.sendSignal('chat', {text: this.value})"
-                class="w-full text-xs border-b border-gray-400 bg-transparent focus:outline-none p-1 font-napkin">
-               <button onclick="HanaPana.sendSignal('chat', {text: document.getElementById('chat-input').value})" class="text-xl">🚀</button>
+            <div class="absolute bottom-4 left-4 right-4 flex gap-1 bg-white p-1">
+               <input type="text" id="chat-input" placeholder="..." class="flex-1 text-sm border-b border-gray-400 bg-transparent focus:outline-none p-1 font-napkin">
+               <button id="btn-chat-send" class="text-xl">🚀</button>
             </div>
-            <!-- Tirador del menú -->
-            <div class="absolute right-1 top-1/2 -translate-y-1/2 w-2 h-12 bg-red-600 rounded-full opacity-50"></div>
+            <div class="absolute right-1 top-1/2 -translate-y-1/2 w-2 h-16 bg-red-600 rounded-full opacity-60"></div>
         </div>
 
         <!-- Video Local (Miniatura Flotante) -->
-        <div id="local-video-container" class="absolute bottom-40 right-6 w-28 h-40 md:w-48 md:h-64 bg-gray-900 rounded-[2rem] overflow-hidden shadow-2xl border-2 border-white/10 z-30 transform-gpu transition-all">
+        <div id="local-video-container" class="absolute bottom-40 right-6 w-32 h-44 md:w-56 md:h-72 bg-gray-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-2 border-white/10 z-30 transform-gpu transition-all">
             <video id="local-video" class="video-fit scale-x-[-1]" autoplay muted playsinline></video>
             <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
         </div>
 
         <!-- Barra de Controles Inferior -->
-        <nav class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-3 bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[3rem] shadow-2xl z-40 w-[90%] max-w-lg justify-between">
+        <nav class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-3 bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[3rem] shadow-2xl z-40 w-[95%] max-w-lg justify-between">
             
             <div class="flex gap-2">
-               <button onclick="HanaPana.sendMatchSignal('heart')" class="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center hover:bg-red-500/40 text-xl btn-active">❤️</button>
-               <button onclick="HanaPana.sendMatchSignal('ball')" class="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 text-xl btn-active">⚽</button>
+               <button onclick="HanaPana.sendMatchSignal('heart')" class="w-14 h-14 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center hover:bg-red-500/40 text-xl btn-active">❤️</button>
+               <button onclick="HanaPana.sendMatchSignal('ball')" class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 text-xl btn-active">⚽</button>
             </div>
 
-            <button onclick="HanaPana.next()" class="flex-1 max-w-[180px] py-4 rounded-[2rem] bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-black uppercase tracking-widest text-[14px] shadow-lg shadow-yellow-500/20 active:scale-95">
+            <button onclick="HanaPana.next()" class="flex-1 max-w-[140px] py-4 rounded-[2rem] bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-black uppercase tracking-widest text-[13px] shadow-lg shadow-yellow-500/20 active:scale-95 transition-all">
                 SIGUIENTE 🚌
             </button>
 
             <div class="flex gap-2">
-               <button onclick="HanaPana.toggleAudio()" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-xl btn-active">🎤</button>
+               <button onclick="HanaPana.toggleMic()" id="btn-mic-toggle" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-xl btn-active">🎤</button>
+               <button onclick="HanaPana.toggleCam()" id="btn-cam-toggle" class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-xl btn-active">🎥</button>
                <button onclick="HanaPana.report()" class="w-12 h-12 rounded-full bg-red-700/40 flex items-center justify-center text-xl btn-active">🤮</button>
             </div>
         </nav>
 
         <!-- Bloqueo -->
         <div id="block-screen" class="hidden absolute inset-0 bg-red-950 flex flex-col items-center justify-center z-[100] text-center p-10">
-            <h1 class="font-bebas text-7xl mb-4">🚫 BLOQUEADO</h1>
+            <h1 class="font-bebas text-8xl mb-4">🚫 BLOQUEADO</h1>
             <p class="font-bold text-gray-300">Te reportaron o usaste apodos falsos. Anda a bañarte y pórtate bien.</p>
             <button onclick="location.reload()" class="mt-8 px-8 py-3 bg-white text-red-950 font-black rounded-xl">PERDÓN, REGRESO</button>
         </div>
