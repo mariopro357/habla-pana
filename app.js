@@ -38,6 +38,7 @@ const HanaPana = {
         
         if (nickInput.value.trim().split(' ').length < 2) return this.showToast("❌ Nombre y apellido real, Pana.");
         if (!igInput.value.includes('@')) return this.showToast("❌ Necesitamos tu Instagram real (@).");
+        if (!document.getElementById('captcha-input').value.trim()) return this.showToast("❌ Responde la pregunta de seguridad.");
 
         this.nick = nickInput.value.trim();
         this.ig = igInput.value.trim();

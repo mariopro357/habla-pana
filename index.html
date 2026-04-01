@@ -25,6 +25,17 @@
 </head>
 <body class="bg-[#050810] text-white select-none overflow-hidden touch-none h-screen w-full">
 
+    <!-- Marca de Agua Superior (MT) -->
+    <div class="absolute top-2 left-1/2 -translate-x-1/2 z-[150] text-[10px] font-black opacity-10 tracking-[1.5em] pointer-events-none uppercase">
+        MT
+    </div>
+
+    <!-- Créditos Superior Derecha (v10.6) -->
+    <div class="absolute top-2 right-4 z-[150] text-right pointer-events-none opacity-50 md:opacity-30">
+        <p class="text-[7px] md:text-[9px] font-black uppercase tracking-widest text-gray-400 leading-none">Colaboración <span class="text-yellow-500">@star_netword</span></p>
+        <p class="text-[6px] md:text-[8px] font-bold uppercase tracking-widest text-gray-500 leading-none mt-0.5">Creado por @mfast_industry</p>
+    </div>
+
     <!-- 📍 PANTALLA 1: EL FILTRO CRIOLLO (AUTH) -->
     <section id="screen-auth" class="fixed inset-0 flex flex-col items-center justify-center p-6 z-[200] transition-opacity duration-700 bg-[#050810]">
         <div class="text-center mb-10 w-full animate-float">
@@ -41,22 +52,30 @@
             </div>
 
             <div class="space-y-4">
+                <!-- Identificación -->
                 <input type="text" id="nick-input" placeholder="Nombre y Apellido"
                     class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-400 font-bold text-center">
+                
                 <input type="text" id="ig-input" placeholder="Instagram @..."
                     class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-400 font-bold text-center">
                 
-                <div class="grid grid-cols-2 gap-3">
-                    <select id="state-select" class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white text-[10px] focus:outline-none font-bold appearance-none text-center">
-                        <option value="" disabled selected>ESTADO</option>
-                        <option value="Caracas">Caracas</option>
-                        <option value="Zulia">Zulia</option>
-                        <option value="Carabobo">Carabobo</option>
-                        <option value="Lara">Lara</option>
-                        <option value="Exterior">Exterior</option>
-                    </select>
-                    <input type="text" id="captcha-input" placeholder="Refrán..."
-                        class="w-full bg-black/80 border border-white/5 rounded-2xl p-4 text-center text-white placeholder-gray-700 focus:outline-none font-black text-xs uppercase">
+                <!-- Ubicación -->
+                <select id="state-select" class="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-white text-sm focus:outline-none font-bold appearance-none text-center">
+                    <option value="" disabled selected>— SELECCIONA TU ESTADO —</option>
+                    <option value="Caracas">Caracas</option>
+                    <option value="Zulia">Zulia</option>
+                    <option value="Carabobo">Carabobo</option>
+                    <option value="Lara">Lara</option>
+                    <option value="Aragua">Aragua</option>
+                    <option value="Anzoátegui">Anzoátegui</option>
+                    <option value="Exterior">Mano, estoy en el exterior</option>
+                </select>
+
+                <!-- Filtro de Seguridad -->
+                <div class="space-y-2">
+                    <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest text-center">Pregunta de Seguridad (Anticapital 🛡️)</p>
+                    <input type="text" id="captcha-input" placeholder="¿Cómo se le dice al Ávila?"
+                        class="w-full bg-black/80 border border-white/5 rounded-2xl p-4 text-center text-white placeholder-gray-700 focus:outline-none font-black text-xs uppercase shadow-inner">
                 </div>
             </div>
 
@@ -213,6 +232,10 @@
             <button onclick="location.reload()" class="mt-10 px-12 py-5 bg-white text-black font-black rounded-2xl">REINTENTAR</button>
         </div>
 
+        <!-- Marca de Agua Inferior (MT) -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1] text-[9px] font-black opacity-5 tracking-[2em] uppercase pointer-events-none">
+            MT
+        </div>
     </main>
 
     <!-- Script Principal -->
