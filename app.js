@@ -38,16 +38,31 @@ const HanaPana = {
         
         if (nickInput.value.trim().split(' ').length < 2) return this.showToast("❌ Nombre y apellido real, Pana.");
         if (!igInput.value.includes('@')) return this.showToast("❌ Necesitamos tu Instagram real (@).");
-        if (!document.getElementById('captcha-input').value.trim()) return this.showToast("❌ Responde la pregunta de seguridad.");
+        const captchaValue = document.getElementById('captcha-input').value.trim();
+        if (!captchaValue) return this.showToast("❌ Responde la pregunta de seguridad.");
 
         this.nick = nickInput.value.trim();
         this.ig = igInput.value.trim();
         this.state = document.getElementById('state-select').value || "Venezuela";
 
+        // Guardar los datos en el equipo del usuario
+        localStorage.setItem("hp_nick", this.nick);
+        localStorage.setItem("hp_ig", this.ig);
+        localStorage.setItem("hp_state", this.state);
+        localStorage.setItem("hp_captcha", captchaValue);
+
         try {
+            // Optimización de cámara para reducir lag y mejorar fluidez en móviles
             this.localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 640, height: 480 }, 
-                audio: true 
+                video: { 
+                    width: { ideal: 480, max: 640 }, 
+                    height: { ideal: 640, max: 480 }, 
+                    frameRate: { ideal: 20, max: 24 } 
+                }, 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                } 
             });
             document.getElementById('local-video').srcObject = this.localStream;
             
@@ -89,7 +104,7 @@ const HanaPana = {
                     this.next();
                 }
             }
-        }, 5000); // Escáner silencioso cada 5 segundos
+        }, 8000); // Se aumentó el intervalo a 8 segundos para evitar lag por sobrecarga de CPU
     },
 
     // --- EMOJIS & CHAT ---
@@ -261,8 +276,11 @@ const HanaPana = {
 
         call.on('stream', (s) => {
             const v = document.getElementById('remote-video');
-            v.srcObject = s;
-            v.onloadedmetadata = () => v.play().catch(()=>{});
+            if (v.srcObject !== s) {
+                v.srcObject = s;
+                // Pequeña optimización: jugar tras asegurar metadata para evitar frame freeze inicial
+                v.onloadedmetadata = () => v.play().catch(()=>{});
+            }
         });
         call.on('close', () => this.next());
     },
@@ -307,3 +325,16 @@ const HanaPana = {
 
 window.HanaPana = HanaPana;
 document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+// Cargar datos locales al abrir la app para que no tengan que registrarse otra vez
+window.addEventListener('DOMContentLoaded', () => {
+    const savedNick = localStorage.getItem("hp_nick");
+    const savedIg = localStorage.getItem("hp_ig");
+    const savedState = localStorage.getItem("hp_state");
+    const savedCaptcha = localStorage.getItem("hp_captcha");
+
+    if (savedNick) document.getElementById('nick-input').value = savedNick;
+    if (savedIg) document.getElementById('ig-input').value = savedIg;
+    if (savedState) document.getElementById('state-select').value = savedState;
+    if (savedCaptcha) document.getElementById('captcha-input').value = savedCaptcha;
+});
